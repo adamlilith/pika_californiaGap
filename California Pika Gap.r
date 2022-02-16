@@ -14,6 +14,7 @@
 
 ### map of gap sampling in focal region ###
 ### map of gap sampling across Sierras ###
+### map of gap sampling across Sierras sans survey plots ###
 
 ### assign weights to TRAINING sites based on spatial autocorrelation ###
 ### calculate spatial autocorrelation within TEST and between TEST and TRAINING survey sites ###
@@ -34,6 +35,8 @@
 ### map of predictions ###
 ### map of incorrect predictions ###
 ### confusion matrix of predictions ###
+
+### make KML of test sites with predictions ###
 
 ######################
 ### generalization ###
@@ -956,6 +959,119 @@
 			# pt.cex=0.7
 		# )
 		
+		# # scale bar
+		# size <- 50000 # length of scale bar in meters
+		# x <- usr[2] - size - 0.02 * width
+		# x <- c(x, x + size)
+		# y <- usr[3] + rep(0.02 * height, 2)
+		
+		# lines(x, y, lwd=4, xpd=NA, col='black', lend=1)
+		
+		# x <- mean(x)
+		# y <- usr[3] + 0.05 * height
+		# text(x, y[1], labels=paste(size / 1000, 'km'), cex=0.5)
+
+		# title(sub=date(), cex.sub=0.3, outer=TRUE, line=-1)
+		
+	# dev.off()
+						
+# say('############################################################')
+# say('### map of gap sampling across Sierras sans survey plots ###')
+# say('############################################################')
+
+	# # generalize
+	# focusBuff <- 1 # buffer size around test sites for generating focus of plot (in km)
+
+	# # spatial data
+	# load('./Study Region/GADM California, Nevada, Oregon States.rda')
+	# load('./Study Region/GADM California, Nevada, Oregon Counties.rda')
+	# load('./Study Region/GADM Plumas County.rda')
+	# load('./Study Region/GADM GAP Counties.rda')
+	# hs <- raster('./Data/Topography - SRTM/hillshade_srtm_ea.tif')
+	
+	# gapCounties <- sp::spTransform(gapCounties, getCRS('climateNA', TRUE))
+	# plumas <- sp::spTransform(plumas, getCRS('climateNA', TRUE))
+	# west1 <- sp::spTransform(west1, getCRS('climateNA', TRUE))
+	# west2 <- sp::spTransform(west2, getCRS('climateNA', TRUE))
+
+	# # training occurrences
+	# load('./Data/Occurrences/Training Surveys 01 Pika - Selected Detections and Non-Detections from Data Providers in Study Region.rda')
+	# trainPres <- surveys[surveys$origRecentPikaOrSignsObserved, ]
+	# trainPresSp <- SpatialPointsDataFrame(trainPres[ , ll], data=trainPres, proj4=getCRS('wgs84', TRUE))
+	# trainPresSpEa <- sp::spTransform(trainPresSp, getCRS('climateNA', TRUE))
+
+	# # plot focus
+	# focus <- gBuffer(trainPresSpEa, width=1000 * focusBuff)
+	
+	# ### crop hillshade
+	# plot(focus)
+	# usr <- par('usr')
+	# dev.off()
+
+	# ext <- extent(usr)
+	# ext <- as(ext, 'SpatialPolygons')
+	# projection(ext) <- getCRS('climateNA')
+
+	# hs <- crop(hs, ext)
+	
+	# # kde
+	# kde <- raster('./KDE/kde.tif')
+	# kde <- projectRaster(kde, crs=getCRS('climateNA'))
+	# kdeVals <- extract(kde, trainPresSpEa)
+	# quants <- quantile(kdeVals, c(0.05, 0.1))
+	# breaks <- c(0, min(kdeVals), quants, 1)
+	# kdeClass <- cut(kde, breaks=breaks)
+
+	# # colors
+	# kdeCols <- c(NA, 'deepskyblue', 'dodgerblue1', 'dodgerblue4')
+	# for (i in seq_along(kdeCols)) kdeCols[i] <- alpha(kdeCols[i], 0.5)
+	
+	# ### shapes and colors for points
+	# trainPresCol <- 'black'
+	# trainPresPch <- 3
+
+	# # plot
+	# png('./Figures & Tables/Gap Sampling - Sierra Nevada Sans Survey Plots.png', width=1200, height=1200, res=300)
+		
+		# par(mar=c(2, 1, 1, 1), cex.axis=0.4, mgp=c(3, 0, 0.2))
+		
+		# plot(focus, border='white')
+		
+		# usr <- par('usr')
+		# xs <- pretty(c(usr[1], usr[2]))
+		# ys <- pretty(c(usr[3], usr[4]))
+		# axis(1, at=xs, tck=0.01, labels=xs, col=NA, col.ticks='black')
+		# axis(2, at=ys, tck=0.01, labels=ys, col=NA, col.ticks='black')
+		
+		# plot(hs, col=grays, legend=FALSE, add=TRUE)
+		# plot(kdeClass, col=kdeCols, legend=FALSE, add=TRUE)
+		# plot(west2, border='gray40', lwd=0.8, add=TRUE)
+		# plot(west1, border='gray40', lwd=1.6, add=TRUE)
+
+		# points(trainPresSpEa, pch=trainPresPch, cex=0.5, col=trainPresCol)
+		# box()
+		
+		# # legend
+		# legendBreaks(
+			# 'bottomleft',
+			# inset=0.01,
+			# height=0.24,
+			# width=0.24,
+			# title='Training occurrence\ndensity',
+			# titleAdj=c(0.5, 0.87),
+			# col=kdeCols,
+			# adjX=c(0.05, 0.225),
+			# adjY=c(0.05, 0.80),
+			# labels=c('\U2265min presence', paste0('\U2265', '5th percentile'), paste0('\U2265', '10th percentile')),
+			# labAdjX=0.59,
+			# cex=0.42,
+			# boxBg=alpha('white', 0.8)
+		# )
+		
+		# usr <- par('usr')
+		# width <- usr[2] - usr[1]
+		# height <- usr[4] - usr[3]
+
 		# # scale bar
 		# size <- 50000 # length of scale bar in meters
 		# x <- usr[2] - size - 0.02 * width
@@ -2161,5 +2277,39 @@
 		
 		# say(date())
 	# sink()
+
+# say('###############################################')
+# say('### make KML of test sites with predictions ###')
+# say('###############################################')
 	
+	# tests <- read.csv('./Data/Occurrences/Test Surveys 02 Cleaned.csv')
+
+	# tests <- SpatialPointsDataFrame(tests[ , c('longWgs84', 'latWgs84')], data=tests, proj4string=getCRS('wgs84', TRUE))
+	# pred <- raster('./ENMs/predictionEnsemble.tif')
+	
+	# tests$prediction <- extract(pred, tests) / 1000
+	
+	# tests$predictedStatus <- NA
+	# tests$predictedStatus[tests$prediction < 0.59] <- '0 long absence'
+	# tests$predictedStatus[tests$prediction >= 0.59 & tests$prediction < 0.74] <- '1 recent absence'
+	# tests$predictedStatus[tests$prediction >= 0.74] <- '2 detection'
+
+	# classFx <- function(x) {
+		# if (is.na(x)) {
+			# NA
+		# } else if (x < 0.59) {
+			# 0
+		# } else if (x >= 0.59 & x < 0.74) {
+			# 1
+		# } else if (x >= 0.74) {
+			# 2
+		# }
+	# }
+	
+	# tholdPred <- calc(pred / 1000, classFx)
+	
+	# KML(tests, './Figures & Tables/California Gap Test Sites', overwrite=TRUE)
+	# KML(pred, './Figures & Tables/California Gap Model Predictions', overwrite=TRUE)
+	# KML(tholdPred, './Figures & Tables/California Gap Model Predictions Thresholded', overwrite=TRUE)
+
 say('DONE!!!!!!!!!!!!!!!!!!!!!!!!!!!!', level=1, pre=1)
