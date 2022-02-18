@@ -2309,7 +2309,7 @@
 	# tholdPred <- calc(pred / 1000, classFx)
 	
 	# KML(tests, './Figures & Tables/California Gap Test Sites', overwrite=TRUE)
-	# KML(pred, './Figures & Tables/California Gap Model Predictions', overwrite=TRUE)
-	# KML(tholdPred, './Figures & Tables/California Gap Model Predictions Thresholded', overwrite=TRUE)
+	# KML(pred, './Figures & Tables/California Gap Model Predictions', mappixel=10 * 100000, overwrite=TRUE)
+	# KML(tholdPred, './Figures & Tables/California Gap Model Predictions Thresholded', mappixel=100 * 100000, overwrite=TRUE)
 
 say('DONE!!!!!!!!!!!!!!!!!!!!!!!!!!!!', level=1, pre=1)
