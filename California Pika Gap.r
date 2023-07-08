@@ -1,8 +1,8 @@
 ### Ochotona princeps - Spatially-varying importance of variables
 ### Adam B. Smith | Missouri Botanical Garden | adam.smith@mobot.org | 2017-02
 ###
-### source('C:/Ecology/Drive/Research/Pikas - California Gap (Erik Beever et al)/Code/California Pika Gap.r')
-### source('E:/Ecology/Drive/Research/Pikas - California Gap (Erik Beever et al)/Code/California Pika Gap.r')
+### source('C:/Ecology/Drive/Research Active/Pikas - California Gap (Erik Beever et al)/Code/California Pika Gap.r')
+### source('E:/Ecology/Drive/Research Active/Pikas - California Gap (Erik Beever et al)/Code/California Pika Gap.r')
 ###
 ### CONTENTS ###
 ### libraries, variables, and functions ###
@@ -12,7 +12,9 @@
 ### collate TEST detections and non-detections ###
 ### construct KDE on TRAINING occurrences to identify gap ###
 
-### map of gap sampling ###
+### map of gap sampling in focal region ###
+### map of gap sampling across Sierras ###
+### map of gap sampling across Sierras sans survey plots ###
 
 ### assign weights to TRAINING sites based on spatial autocorrelation ###
 ### calculate spatial autocorrelation within TEST and between TEST and TRAINING survey sites ###
@@ -34,6 +36,9 @@
 ### map of incorrect predictions ###
 ### confusion matrix of predictions ###
 
+### make KML of test sites with predictions ###
+### calculate climate means for gap area ###
+
 ######################
 ### generalization ###
 ######################
@@ -50,9 +55,9 @@
 	set.seed(1234567890)
 	
 	# working drive
-	# drive <- 'C:'
+	drive <- 'C:'
 	# drive <- 'D:'
-	drive <- 'E:'
+	# drive <- 'E:'
 
 	# PRISM
 	# prismDrive <- 'F:'
@@ -80,7 +85,7 @@
 		library(rgeos)
 		library(raster)
 		library(dismo)
-		library(spatialEco)
+		# library(spatialEco)
 		library(gbm)
 		library(party)
 		library(terra)
@@ -210,7 +215,7 @@
 	# ## study region extent derived from modified EPA Level III "Sierra Nevada" ecoregion plus 70-km buffer
 	# say('study region')
 		
-		# epa3 <- shapefile(paste0(drive, '/Ecology/Drive/Research/Iconic Species/Extents_Masks_Maps/EcoRegions/!OmernikEcoregions/us_eco_l3SarrREV'))
+		# epa3 <- shapefile(paste0(drive, '/Ecology/Drive/Research Done/Iconic Species/Extents_Masks_Maps/EcoRegions/!OmernikEcoregions/us_eco_l3SarrREV'))
 
 		# snEa <- epa3[epa3$L3_KEY == '5  Sierra Nevada', ]
 		# snBuff <- gBuffer(snEa, width=1000 * studyRegionBuffer)
@@ -265,7 +270,7 @@
 	# ### SRTM hill shade
 	# say('SRTM hill shade')
 	
-		# snBuffLarger <- gBuffer(snEa, width=2 * 1000 * studyRegionBuffer)
+		# snBuffLarger <- gBuffer(snEa, width=6 * 1000 * studyRegionBuffer)
 		# snBuffLargerWgs84 <- sp::spTransform(snBuffLarger, getCRS('wgs84', TRUE))
 
 		# srtm1 <- rast('F:/ecology/Topography/SRTM - CGIAR/Tiles/cut_n30w120.tif')
@@ -275,26 +280,22 @@
 		# srtm2 <- crop(srtm2, snBuffLargerWgs84)
 
 		# expandedSrtm <- mosaic(srtm1, srtm2)
-	
+
 		# slope <- terrain(expandedSrtm, 'slope', unit='rad')
 		# aspect <- terrain(expandedSrtm, 'aspect', unit='rad')
 		
 		# names(slope) <- 'slope_srtm_rad'
 		# names(aspect) <- 'aspect_srtm_rad'
 		
-		# slope <- raster(slope)
-		# aspect <- raster(aspect)
-		
-		# hs <- hillShade(slope, aspect, direction=45)
+		# hs <- shade(slope, aspect, direction=45)
+		# hs <- stretch(hs, 0, 1)
+		# hs <- round(hs, 5)
 		# names(hs) <- 'hillshade_srtm'
-		# writeRaster(hs, './Data/Topography - SRTM/hillshade_srtm', overwrite=TRUE)
+		# writeRaster(hs, './Data/Topography - SRTM/hillshade_srtm.tif', datatype='FLT4S', overwrite=TRUE)
 		
-		# beginCluster(4)
-			# hsEa <- projectRaster(hs, crs=getCRS('climateNA'))
-		# endCluster()
-		# hs <- round(hsEa, 5)
+		# hsEa <- project(hs, getCRS('climateNA'))
 		# names(hsEa) <- 'hillshade_srtm_ea'
-		# writeRaster(hsEa, './Data/Topography - SRTM/hillshade_srtm_ea', datatype='FLT4S')
+		# writeRaster(hsEa, './Data/Topography - SRTM/hillshade_srtm_ea.tif', datatype='FLT4S', overwrite=TRUE)
 
 	# ## political entities
 	# say('political geography')
@@ -669,9 +670,9 @@
 	
 	# writeRaster(kde, './KDE/kde')
 	
-# say('###########################')
-# say('### map of gap sampling ###')
-# say('###########################')
+# say('###########################################')
+# say('### map of gap sampling in focal region ###')
+# say('###########################################')
 
 	# # generalize
 	# focusBuff <- 25 # buffer size around test sites for generating focus of plot (in km)
@@ -688,6 +689,11 @@
 	# west1 <- sp::spTransform(west1, getCRS('climateNA', TRUE))
 	# west2 <- sp::spTransform(west2, getCRS('climateNA', TRUE))
 
+	# nam1 <- readRDS('C:/Ecology/Drive/Research Data/GADM/version_4.1/North America Level 1 sans Great Lakes SpatVector Albers.rds')
+	# nam2 <- readRDS('C:/Ecology/Drive/Research Data/GADM/version_4.1/North America Level 2 sans Great Lakes SpatVector Albers.rds')
+	# nam1 <- nam1[nam1$NAME_1 %in% c('California', 'Arizona', 'New Mexico', 'Utah', 'Oregon', 'Washington', 'Baja California', 'Baja California Sur', 'Idaho', 'Nevada', 'British Columbia', 'Sonora', 'Chihuahua', 'Montana', 'Sinola'), ]
+	# nam2 <- nam2[nam2$NAME_1 %in% c('California'), ]
+
 	# # training occurrences
 	# load('./Data/Occurrences/Training Surveys 01 Pika - Selected Detections and Non-Detections from Data Providers in Study Region.rda')
 	# trainPres <- surveys[surveys$origRecentPikaOrSignsObserved, ]
@@ -695,7 +701,7 @@
 	# trainPresSpEa <- sp::spTransform(trainPresSp, getCRS('climateNA', TRUE))
 
 	# # test occurrences
-	# testSurveys <- read.csv('./Data/Occurrences/Test Surveys 02 Cleaned.csv')
+	# testSurveys <- read.csv('./Data/Occurrences/Test Surveys 02 Cleaned.csv', stringsAsFactors=FALSE, fileEncoding='latin1')
 	# testSurveysSp <- SpatialPointsDataFrame(testSurveys[ , ll], data=testSurveys, proj4=getCRS('nad83', TRUE))
 	# testSurveysSpEa <- sp::spTransform(testSurveysSp, getCRS('climateNA', TRUE))
 	
@@ -730,7 +736,8 @@
 	# ### shapes and colors for points
 	# trainPresCol <- 'black'
 	# testPresCol <- 'darkgreen'
-	# testShortTermAbsCol <- 'darkorange4'
+	# # testShortTermAbsCol <- 'darkorange4'
+	# testShortTermAbsCol <- 'yellow'
 	# testLongTermAbsCol <- 'darkred'
 	
 	# trainPresPch <- 3
@@ -739,7 +746,7 @@
 	# testLongTermPch <- 6
 
 	# # plot
-	# png('./Figures & Tables/Gap Sampling.png', width=1200, height=1200, res=300)
+	# png('./Figures & Tables/Gap Sampling 2.png', width=1200, height=1200, res=300)
 		
 		# par(mar=c(2, 1, 1, 1), cex.axis=0.4, mgp=c(3, 0, 0.2))
 		
@@ -755,6 +762,361 @@
 		# plot(kdeClass, col=kdeCols, legend=FALSE, add=TRUE)
 		# plot(west2, border='gray40', add=TRUE)
 		# plot(west1, border='gray40', lwd=2, add=TRUE)
+
+		# testSurveysSpEa <- testSurveysSpEa[order(testSurveysSpEa$status), ]
+		
+		# cols <- rep(NA, nrow(testSurveys))
+		# cols[testSurveysSpEa$status == '0 long absence'] <- testLongTermAbsCol
+		# cols[testSurveysSpEa$status == '1 recent absence'] <- testShortTermAbsCol
+		# cols[testSurveysSpEa$status == '2 detected'] <- testPresCol
+		
+		# pchs <- rep(NA, nrow(testSurveys))
+		# pchs[testSurveysSpEa$status == '0 long absence'] <- testLongTermPch
+		# pchs[testSurveysSpEa$status == '1 recent absence'] <- testShortTermPch
+		# pchs[testSurveysSpEa$status == '2 detected'] <- testPresPch
+		
+		# points(trainPresSpEa, pch=trainPresPch, cex=0.5, col=trainPresCol)
+		# points(testSurveysSpEa, pch=pchs, col=cols, cex=0.6)
+		# box()
+		
+		# # legend
+		# legendBreaks(
+			# 'bottomleft',
+			# inset=0.01,
+			# height=0.44,
+			# width=0.27,
+			# title='Previously-known\noccurrences',
+			# titleAdj=c(0.5, 0.92),
+			# col=kdeCols,
+			# adjX=c(0.05, 0.225),
+			# adjY=c(0.38, 0.85),
+			# labels=c('\U2265min presence', paste0('\U2265', '5th percentile'), paste0('  \U2265', '10th percentile')),
+			# labAdjX=0.58,
+			# cex=0.54,
+			# boxBg=alpha('white', 0.8)
+		# )
+		
+		# usr <- par('usr')
+		# width <- usr[2] - usr[1]
+		# height <- usr[4] - usr[3]
+		# x <- usr[1] + 0.01 * width
+		# y <- usr[3] + 0.17 * height
+		
+		# legend(
+			# x,
+			# y,
+			# legend=c('Previously-known occ.', 'Long-term test absence', 'Recent test absence', 'Test presence'),
+			# pch=c(trainPresPch, testLongTermPch, testShortTermPch, testPresPch),
+			# col=c(trainPresCol, testLongTermAbsCol, testShortTermAbsCol, testPresCol),
+			# bty='n',
+			# title='Surveys',
+			# cex=0.45,
+			# pt.cex=0.7
+		# )
+		
+		# # scale bar
+		# size <- 50000 # length of scale bar in meters
+		# x <- usr[2] - size - 0.02 * width
+		# x <- c(x, x + size)
+		# y <- usr[3] + rep(0.02 * height, 2)
+		
+		# lines(x, y, lwd=4, xpd=NA, col='black', lend=1)
+		
+		# x <- mean(x)
+		# y <- usr[3] + 0.05 * height
+		# text(x, y[1], labels=paste(size / 1000, 'km'), cex=0.5)
+
+		# title(sub=date(), cex.sub=0.3, outer=TRUE, line=-1)
+		
+	# dev.off()
+
+						
+	# # plot
+	# png('./Figures & Tables/Gap Sampling Plumas Emphasized with No Survey Sites.png', width=1200, height=1200, res=300)
+		
+		# par(mar=c(2, 1, 1, 1), cex.axis=0.4, mgp=c(3, 0, 0.2))
+		
+		# plot(focus, border='white')
+		
+		# usr <- par('usr')
+		# xs <- pretty(c(usr[1], usr[2]))
+		# ys <- pretty(c(usr[3], usr[4]))
+		# axis(1, at=xs, tck=0.01, labels=xs, col=NA, col.ticks='black')
+		# axis(2, at=ys, tck=0.01, labels=ys, col=NA, col.ticks='black')
+		
+		# # plot(hs, col=grays, legend=FALSE, add=TRUE)
+		# plot(kdeClass, col=kdeCols, legend=FALSE, add=TRUE)
+		# plot(west2, border='gray40', add=TRUE)
+		# plot(west1, border='gray40', lwd=2, add=TRUE)
+		# plot(west2[west2$NAME_2 == 'Plumas', ], border='gray40', lwd=3, add=TRUE)
+
+		# testSurveysSpEa <- testSurveysSpEa[order(testSurveysSpEa$status), ]
+		
+		# # cols <- rep(NA, nrow(testSurveys))
+		# # cols[testSurveysSpEa$status == '0 long absence'] <- testLongTermAbsCol
+		# # cols[testSurveysSpEa$status == '1 recent absence'] <- testShortTermAbsCol
+		# # cols[testSurveysSpEa$status == '2 detected'] <- testPresCol
+		
+		# # pchs <- rep(NA, nrow(testSurveys))
+		# # pchs[testSurveysSpEa$status == '0 long absence'] <- testLongTermPch
+		# # pchs[testSurveysSpEa$status == '1 recent absence'] <- testShortTermPch
+		# # pchs[testSurveysSpEa$status == '2 detected'] <- testPresPch
+		
+		# points(trainPresSpEa, pch=trainPresPch, cex=0.5, col=trainPresCol)
+		# # points(testSurveysSpEa, pch=pchs, col=cols, cex=0.6)
+		# box()
+		
+		# # legend
+		# legendBreaks(
+			# 'bottomleft',
+			# inset=0.01,
+			# height=0.44,
+			# width=0.27,
+			# title='Training occurrence\ndensity',
+			# titleAdj=c(0.5, 0.92),
+			# col=kdeCols,
+			# adjX=c(0.05, 0.225),
+			# adjY=c(0.38, 0.85),
+			# labels=c('\U2265min presence', paste0('\U2265', '5th percentile'), paste0('\U2265', '10th percentile')),
+			# labAdjX=0.52,
+			# cex=0.42,
+			# boxBg=alpha('white', 0.8)
+		# )
+		
+		# usr <- par('usr')
+		# width <- usr[2] - usr[1]
+		# height <- usr[4] - usr[3]
+		# x <- usr[1] + 0.01 * width
+		# y <- usr[3] + 0.17 * height
+		
+		# legend(
+			# x,
+			# y,
+			# legend=c('Training presence', 'Long-term test absence', 'Recent test absence', 'Test presence'),
+			# pch=c(trainPresPch, testLongTermPch, testShortTermPch, testPresPch),
+			# col=c(trainPresCol, testLongTermAbsCol, testShortTermAbsCol, testPresCol),
+			# bty='n',
+			# title='Surveys',
+			# cex=0.45,
+			# pt.cex=0.7
+		# )
+		
+		# # scale bar
+		# size <- 50000 # length of scale bar in meters
+		# x <- usr[2] - size - 0.02 * width
+		# x <- c(x, x + size)
+		# y <- usr[3] + rep(0.02 * height, 2)
+		
+		# lines(x, y, lwd=4, xpd=NA, col='black', lend=1)
+		
+		# x <- mean(x)
+		# y <- usr[3] + 0.05 * height
+		# text(x, y[1], labels=paste(size / 1000, 'km'), cex=0.5)
+
+		# title(sub=date(), cex.sub=0.3, outer=TRUE, line=-1)
+		
+	# dev.off()
+	
+	# iucn <- vect(paste0(drive, '/Ecology/Drive/Research Data/IUCN Range Maps/Data/MAMMALS_TERRESTRIAL_ONLY.shp'))
+	# iucn <- iucn[iucn$binomial == 'Ochotona princeps', ]
+	# iucn <- project(iucn, nam1)
+
+	# # plot
+	# png('./Figures & Tables/Gap Sampling Plumas Emphasized with Range Maps & No Survey Sites.png', width=1200, height=1200, res=300)
+		
+		# par(mar=c(2, 1, 1, 1), cex.axis=0.4, mgp=c(3, 0, 0.2), fig=c(0, 1, 0, 1))
+		
+		# plot(focus, border='white')
+		
+		# usr <- par('usr')
+		# xs <- pretty(c(usr[1], usr[2]))
+		# ys <- pretty(c(usr[3], usr[4]))
+		# axis(1, at=xs, tck=0.01, labels=xs, col=NA, col.ticks='black')
+		# axis(2, at=ys, tck=0.01, labels=ys, col=NA, col.ticks='black')
+		
+		# plot(hs, col=grays, legend=FALSE, add=TRUE)
+		# iucnSp <- as(iucn, 'Spatial')
+		# iucnSp <- sp::spTransform(iucnSp, CRS(proj4string(west1)))
+		# iucnSp <- gBuffer(iucnSp, width=20*1000)
+		# iucnSp <- gBuffer(iucnSp, width=-20*1000)
+		# plot(iucnSp, col=alpha('forestgreen', 0.5), add=TRUE)
+
+		# testSurveysSpEa <- testSurveysSpEa[order(testSurveysSpEa$status), ]
+		
+		# plot(kdeClass, col=kdeCols, legend=FALSE, add=TRUE)
+		# plot(west2, border='gray40', add=TRUE)
+		# plot(west1, border='gray40', lwd=2, add=TRUE)
+		# plot(west2[west2$NAME_2 == 'Plumas', ], border='gray40', lwd=3, add=TRUE)
+
+		# # cols <- rep(NA, nrow(testSurveys))
+		# # cols[testSurveysSpEa$status == '0 long absence'] <- testLongTermAbsCol
+		# # cols[testSurveysSpEa$status == '1 recent absence'] <- testShortTermAbsCol
+		# # cols[testSurveysSpEa$status == '2 detected'] <- testPresCol
+		
+		# # pchs <- rep(NA, nrow(testSurveys))
+		# # pchs[testSurveysSpEa$status == '0 long absence'] <- testLongTermPch
+		# # pchs[testSurveysSpEa$status == '1 recent absence'] <- testShortTermPch
+		# # pchs[testSurveysSpEa$status == '2 detected'] <- testPresPch
+		
+		# points(trainPresSpEa, pch=trainPresPch, cex=0.5, col=trainPresCol)
+		# # points(testSurveysSpEa, pch=pchs, col=cols, cex=0.6)
+		# box()
+		
+		# # legend
+		# legendBreaks(
+			# 'bottomleft',
+			# inset=0.01,
+			# height=0.39,
+			# width=0.30,
+			# title='Density of previously-\nknown occurrences',
+			# titleAdj=c(0.5, 0.9),
+			# col=kdeCols,
+			# adjX=c(0.08, 0.225),
+			# adjY=c(0.35, 0.77),
+			# labels=c('\U2265min presence', paste0('\U2265', '5th percentile'), paste0('  \U2265', '10th percentile')),
+			# labAdjX=0.58,
+			# cex=0.57,
+			# boxBg=alpha('white', 0.8)
+		# )
+		
+		# usr <- par('usr')
+		# width <- usr[2] - usr[1]
+		# height <- usr[4] - usr[3]
+		# x <- usr[1] + 0.01 * width
+		# y <- usr[3] + 0.15 * height
+		
+		# legend(
+			# x,
+			# y,
+			# legend=c('Previously-known\noccurrence', 'IUCN range'),
+			# pch=c(trainPresPch, NA),
+			# col=c(trainPresCol, 'black'),
+			# fill=c(NA, 'darkolivegreen3'),
+			# border=c(NA, 'black'),
+			# bty='n',
+			# cex=0.57,
+			# pt.cex=0.7
+		# )
+		
+		# # scale bar
+		# size <- 50000 # length of scale bar in meters
+		# x <- usr[2] - size - 0.02 * width
+		# x <- c(x, x + size)
+		# y <- usr[3] + rep(0.02 * height, 2)
+		
+		# lines(x, y, lwd=4, xpd=NA, col='black', lend=1)
+		
+		# x <- mean(x)
+		# y <- usr[3] + 0.05 * height
+		# text(x, y[1], labels=paste(size / 1000, 'km'), cex=0.7)
+
+		# title(sub=date(), cex.sub=0.3, outer=TRUE, line=-1)
+		
+		# # inset
+		# insetNam <- nam1[nam1$NAME_1 %in% c('California', 'Oregon', 'Baja California', 'Baja California Sur', 'Washington'), ]
+		# insetNam <- ext(insetNam)
+		# insetNam <- vect(insetNam, crs=crs(nam1))
+		# insetNam <- buffer(insetNam, 100 * 1000)
+		# insetNam <- ext(insetNam)
+		# insetNam <- vect(insetNam, crs=crs(nam1))
+
+		# par(fig = c(0.6, 1, 0.0, 0.65), bg='white', new=TRUE)
+		# plot(insetNam, col='white', axes=FALSE, bty='o')
+		# plot(crop(nam1, insetNam), col='gray80', lwd=0.1, add=TRUE)
+		# plot(crop(iucn, insetNam), col='forestgreen', lwd=0.2, add=TRUE)
+		
+		# counties <- nam2[nam2$NAME_2 %in% gapCounties$NAME_2, ]
+		# counties <- ext(counties)
+		# foc <- vect(counties, crs=crs(nam2))
+		# plot(foc, lwd=2, add=TRUE)
+
+		
+	# dev.off()
+
+# say('##########################################')
+# say('### map of gap sampling across Sierras ###')
+# say('##########################################')
+
+	# # generalize
+	# focusBuff <- 1 # buffer size around test sites for generating focus of plot (in km)
+
+	# # spatial data
+	# load('./Study Region/GADM California, Nevada, Oregon States.rda')
+	# load('./Study Region/GADM California, Nevada, Oregon Counties.rda')
+	# load('./Study Region/GADM Plumas County.rda')
+	# load('./Study Region/GADM GAP Counties.rda')
+	# hs <- raster('./Data/Topography - SRTM/hillshade_srtm_ea.tif')
+	
+	# gapCounties <- sp::spTransform(gapCounties, getCRS('climateNA', TRUE))
+	# plumas <- sp::spTransform(plumas, getCRS('climateNA', TRUE))
+	# west1 <- sp::spTransform(west1, getCRS('climateNA', TRUE))
+	# west2 <- sp::spTransform(west2, getCRS('climateNA', TRUE))
+
+	# # training occurrences
+	# load('./Data/Occurrences/Training Surveys 01 Pika - Selected Detections and Non-Detections from Data Providers in Study Region.rda')
+	# trainPres <- surveys[surveys$origRecentPikaOrSignsObserved, ]
+	# trainPresSp <- SpatialPointsDataFrame(trainPres[ , ll], data=trainPres, proj4=getCRS('wgs84', TRUE))
+	# trainPresSpEa <- sp::spTransform(trainPresSp, getCRS('climateNA', TRUE))
+
+	# # test occurrences
+	# testSurveys <- read.csv('./Data/Occurrences/Test Surveys 02 Cleaned.csv')
+	# testSurveysSp <- SpatialPointsDataFrame(testSurveys[ , ll], data=testSurveys, proj4=getCRS('nad83', TRUE))
+	# testSurveysSpEa <- sp::spTransform(testSurveysSp, getCRS('climateNA', TRUE))
+	
+	# # plot focus
+	# focus <- gBuffer(trainPresSpEa, width=1000 * focusBuff)
+	
+	# ### crop hillshade
+	# plot(focus)
+	# usr <- par('usr')
+	# dev.off()
+
+	# ext <- extent(usr)
+	# ext <- as(ext, 'SpatialPolygons')
+	# projection(ext) <- getCRS('climateNA')
+
+	# hs <- crop(hs, ext)
+	
+	# # kde
+	# kde <- raster('./KDE/kde.tif')
+	# kde <- projectRaster(kde, crs=getCRS('climateNA'))
+	# kdeVals <- extract(kde, trainPresSpEa)
+	# quants <- quantile(kdeVals, c(0.05, 0.1))
+	# breaks <- c(0, min(kdeVals), quants, 1)
+	# kdeClass <- cut(kde, breaks=breaks)
+
+	# # colors
+	# kdeCols <- c(NA, 'deepskyblue', 'dodgerblue1', 'dodgerblue4')
+	# for (i in seq_along(kdeCols)) kdeCols[i] <- alpha(kdeCols[i], 0.5)
+	
+	# ### shapes and colors for points
+	# trainPresCol <- 'black'
+	# testPresCol <- 'darkgreen'
+	# testShortTermAbsCol <- 'darkorange4'
+	# testLongTermAbsCol <- 'darkred'
+	
+	# trainPresPch <- 3
+	# testPresPch <- 1
+	# testShortTermPch <- 5
+	# testLongTermPch <- 6
+
+	# # plot
+	# png('./Figures & Tables/Gap Sampling - Sierra Nevada.png', width=1200, height=1200, res=300)
+		
+		# par(mar=c(2, 1, 1, 1), cex.axis=0.4, mgp=c(3, 0, 0.2))
+		
+		# plot(focus, border='white')
+		
+		# usr <- par('usr')
+		# xs <- pretty(c(usr[1], usr[2]))
+		# ys <- pretty(c(usr[3], usr[4]))
+		# axis(1, at=xs, tck=0.01, labels=xs, col=NA, col.ticks='black')
+		# axis(2, at=ys, tck=0.01, labels=ys, col=NA, col.ticks='black')
+		
+		# plot(hs, col=grays, legend=FALSE, add=TRUE)
+		# plot(kdeClass, col=kdeCols, legend=FALSE, add=TRUE)
+		# plot(west2, border='gray40', lwd=0.8, add=TRUE)
+		# plot(west1, border='gray40', lwd=1.6, add=TRUE)
 
 		# testSurveysSpEa <- testSurveysSpEa[order(testSurveysSpEa$status), ]
 		
@@ -807,6 +1169,119 @@
 			# pt.cex=0.7
 		# )
 		
+		# # scale bar
+		# size <- 50000 # length of scale bar in meters
+		# x <- usr[2] - size - 0.02 * width
+		# x <- c(x, x + size)
+		# y <- usr[3] + rep(0.02 * height, 2)
+		
+		# lines(x, y, lwd=4, xpd=NA, col='black', lend=1)
+		
+		# x <- mean(x)
+		# y <- usr[3] + 0.05 * height
+		# text(x, y[1], labels=paste(size / 1000, 'km'), cex=0.5)
+
+		# title(sub=date(), cex.sub=0.3, outer=TRUE, line=-1)
+		
+	# dev.off()
+						
+# say('############################################################')
+# say('### map of gap sampling across Sierras sans survey plots ###')
+# say('############################################################')
+
+	# # generalize
+	# focusBuff <- 1 # buffer size around test sites for generating focus of plot (in km)
+
+	# # spatial data
+	# load('./Study Region/GADM California, Nevada, Oregon States.rda')
+	# load('./Study Region/GADM California, Nevada, Oregon Counties.rda')
+	# load('./Study Region/GADM Plumas County.rda')
+	# load('./Study Region/GADM GAP Counties.rda')
+	# hs <- raster('./Data/Topography - SRTM/hillshade_srtm_ea.tif')
+	
+	# gapCounties <- sp::spTransform(gapCounties, getCRS('climateNA', TRUE))
+	# plumas <- sp::spTransform(plumas, getCRS('climateNA', TRUE))
+	# west1 <- sp::spTransform(west1, getCRS('climateNA', TRUE))
+	# west2 <- sp::spTransform(west2, getCRS('climateNA', TRUE))
+
+	# # training occurrences
+	# load('./Data/Occurrences/Training Surveys 01 Pika - Selected Detections and Non-Detections from Data Providers in Study Region.rda')
+	# trainPres <- surveys[surveys$origRecentPikaOrSignsObserved, ]
+	# trainPresSp <- SpatialPointsDataFrame(trainPres[ , ll], data=trainPres, proj4=getCRS('wgs84', TRUE))
+	# trainPresSpEa <- sp::spTransform(trainPresSp, getCRS('climateNA', TRUE))
+
+	# # plot focus
+	# focus <- gBuffer(trainPresSpEa, width=1000 * focusBuff)
+	
+	# ### crop hillshade
+	# plot(focus)
+	# usr <- par('usr')
+	# dev.off()
+
+	# ext <- extent(usr)
+	# ext <- as(ext, 'SpatialPolygons')
+	# projection(ext) <- getCRS('climateNA')
+
+	# hs <- crop(hs, ext)
+	
+	# # kde
+	# kde <- raster('./KDE/kde.tif')
+	# kde <- projectRaster(kde, crs=getCRS('climateNA'))
+	# kdeVals <- extract(kde, trainPresSpEa)
+	# quants <- quantile(kdeVals, c(0.05, 0.1))
+	# breaks <- c(0, min(kdeVals), quants, 1)
+	# kdeClass <- cut(kde, breaks=breaks)
+
+	# # colors
+	# kdeCols <- c(NA, 'deepskyblue', 'dodgerblue1', 'dodgerblue4')
+	# for (i in seq_along(kdeCols)) kdeCols[i] <- alpha(kdeCols[i], 0.5)
+	
+	# ### shapes and colors for points
+	# trainPresCol <- 'black'
+	# trainPresPch <- 3
+
+	# # plot
+	# png('./Figures & Tables/Gap Sampling - Sierra Nevada Sans Survey Plots.png', width=1200, height=1200, res=300)
+		
+		# par(mar=c(2, 1, 1, 1), cex.axis=0.4, mgp=c(3, 0, 0.2))
+		
+		# plot(focus, border='white')
+		
+		# usr <- par('usr')
+		# xs <- pretty(c(usr[1], usr[2]))
+		# ys <- pretty(c(usr[3], usr[4]))
+		# axis(1, at=xs, tck=0.01, labels=xs, col=NA, col.ticks='black')
+		# axis(2, at=ys, tck=0.01, labels=ys, col=NA, col.ticks='black')
+		
+		# plot(hs, col=grays, legend=FALSE, add=TRUE)
+		# plot(kdeClass, col=kdeCols, legend=FALSE, add=TRUE)
+		# plot(west2, border='gray40', lwd=0.8, add=TRUE)
+		# plot(west1, border='gray40', lwd=1.6, add=TRUE)
+
+		# points(trainPresSpEa, pch=trainPresPch, cex=0.5, col=trainPresCol)
+		# box()
+		
+		# # legend
+		# legendBreaks(
+			# 'bottomleft',
+			# inset=0.01,
+			# height=0.24,
+			# width=0.24,
+			# title='Training occurrence\ndensity',
+			# titleAdj=c(0.5, 0.87),
+			# col=kdeCols,
+			# adjX=c(0.05, 0.225),
+			# adjY=c(0.05, 0.80),
+			# labels=c('\U2265min presence', paste0('\U2265', '5th percentile'), paste0('\U2265', '10th percentile')),
+			# labAdjX=0.59,
+			# cex=0.42,
+			# boxBg=alpha('white', 0.8)
+		# )
+		
+		# usr <- par('usr')
+		# width <- usr[2] - usr[1]
+		# height <- usr[4] - usr[3]
+
 		# # scale bar
 		# size <- 50000 # length of scale bar in meters
 		# x <- usr[2] - size - 0.02 * width
@@ -2012,5 +2487,62 @@
 		
 		# say(date())
 	# sink()
+
+# say('###############################################')
+# say('### make KML of test sites with predictions ###')
+# say('###############################################')
 	
+	# tests <- read.csv('./Data/Occurrences/Test Surveys 02 Cleaned.csv')
+
+	# tests <- SpatialPointsDataFrame(tests[ , c('longWgs84', 'latWgs84')], data=tests, proj4string=getCRS('wgs84', TRUE))
+	# pred <- raster('./ENMs/predictionEnsemble.tif')
+	
+	# tests$prediction <- extract(pred, tests) / 1000
+	
+	# tests$predictedStatus <- NA
+	# tests$predictedStatus[tests$prediction < 0.59] <- '0 long absence'
+	# tests$predictedStatus[tests$prediction >= 0.59 & tests$prediction < 0.74] <- '1 recent absence'
+	# tests$predictedStatus[tests$prediction >= 0.74] <- '2 detection'
+
+	# classFx <- function(x) {
+		# if (is.na(x)) {
+			# NA
+		# } else if (x < 0.59) {
+			# 0
+		# } else if (x >= 0.59 & x < 0.74) {
+			# 1
+		# } else if (x >= 0.74) {
+			# 2
+		# }
+	# }
+	
+	# tholdPred <- calc(pred / 1000, classFx)
+	
+	# KML(tests, './Figures & Tables/California Gap Test Sites', overwrite=TRUE)
+	# KML(pred, './Figures & Tables/California Gap Model Predictions', mappixel=10 * 100000, overwrite=TRUE)
+	# KML(tholdPred, './Figures & Tables/California Gap Model Predictions Thresholded', mappixel=100 * 100000, overwrite=TRUE)
+	
+# say('############################################')
+# say('### calculate climate means for gap area ###')
+# say('############################################')
+
+	# swe <- rast(listFiles('./Data/Climate - Monthly Means/swe', pattern='.tif'))
+	# maxs <- rast(listFiles('./Data/Climate - Monthly Means/tmax', pattern='.tif'))
+	# mins <- rast(paste0('./Data/Climate - Monthly Means/tmin/tmin_month', prefix(c(12, 1, 2), 2), '_mean2010to2019.tif'))
+
+	# load('./Study Region/GADM Plumas County.rda')
+	# plumas <- vect(plumas)
+	
+	# maxs <- mean(maxs)
+	# mins <- mean(mins)
+	# swe <- sum(swe)
+	
+	# maxs <- extract(maxs, plumas, ID=FALSE)
+	# mins <- extract(mins, plumas, ID=FALSE)
+	# swe <- extract(swe, plumas, ID=FALSE)
+
+	# maxs <- colMeans(maxs)
+	# mins <- colMeans(mins)
+	# swe <- colMeans(swe)
+
 say('DONE!!!!!!!!!!!!!!!!!!!!!!!!!!!!', level=1, pre=1)
