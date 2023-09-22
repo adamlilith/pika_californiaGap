@@ -1,8 +1,8 @@
 ### Ochotona princeps - Spatially-varying importance of variables
 ### Adam B. Smith | Missouri Botanical Garden | adam.smith@mobot.org | 2017-02
 ###
-### source('C:/Ecology/Drive/Research Active/Pikas - California Gap (Erik Beever et al)/Code/California Pika Gap.r')
-### source('E:/Ecology/Drive/Research Active/Pikas - California Gap (Erik Beever et al)/Code/California Pika Gap.r')
+### source('C:/Ecology/Drive/Research/Pikas - California Gap (Erik Beever et al)/pika_californiaGap/California Pika Gap.r')
+### source('E:/Ecology/Drive/Research/Pikas - California Gap (Erik Beever et al)/pika_californiaGap/California Pika Gap.r')
 ###
 ### CONTENTS ###
 ### libraries, variables, and functions ###
@@ -39,6 +39,8 @@
 ### make KML of test sites with predictions ###
 ### calculate climate means for gap area ###
 
+### graph of elevation of calibration and survey sites by type ###
+
 ######################
 ### generalization ###
 ######################
@@ -49,15 +51,14 @@
 ###########################################
 
 	rm(list=ls())
-	memory.limit(memory.limit() * 2^30)
 	gc()
 
 	set.seed(1234567890)
 	
 	# working drive
-	drive <- 'C:'
+	# drive <- 'C:'
 	# drive <- 'D:'
-	# drive <- 'E:'
+	drive <- 'E:'
 
 	# PRISM
 	# prismDrive <- 'F:'
@@ -66,7 +67,7 @@
 	# TerraClimate
 	tcDrive <- 'F:'
 
-	setwd(paste0(drive, '/ecology/Drive/Research/Pikas - California Gap (Erik Beever et al)'))
+	setwd(paste0(drive, '/ecology/Drive/Research/Pikas - California Gap (Erik Beever et al) V2'))
 
 	prismCrs <- '+proj=longlat +datum=NAD83 +no_defs'
 
@@ -74,20 +75,24 @@
 	### libraries and functions ###
 	###############################
 
-		library(scales)
-		library(sp)
+		library(data.table)
+		library(dismo)
+		library(gbm)
 		library(rgdal)
 		library(mgcv)
+		library(fasterRaster)
 		library(geosphere)
 		library(cluster)
-		library(rJava)
+		library(ggplot2)
 		library(fossil)
+		library(party)
 		library(rgeos)
 		library(raster)
-		library(dismo)
-		# library(spatialEco)
-		library(gbm)
-		library(party)
+		library(rJava)
+		library(scales)
+		library(sf)
+		library(sp)
+		library(spatialEco)
 		library(terra)
 
 		library(openxlsx)
@@ -163,7 +168,8 @@
 	#################
 	
 		# GRASS directory
-		grassDir <- c('C:/OSGeo4W64/', 'grass-7.4.1', 'osgeo4W')
+		# grassDir <- c('C:/OSGeo4W64/', 'grass-7.4.1', 'osgeo4W')
+		grassDir <- 'C:/Program Files/GRASS GIS 8.3' # Windows
 	
 		# days of year
 		data(doyLeap, doyNonLeap, package='omnibus')
@@ -207,7 +213,7 @@
 		dirCreate('./Study Region')
 		dirCreate('./KDE')
 		dirCreate('./ENMs')
-	
+
 # say('###########################')
 # say('### define study region ###')
 # say('###########################')
@@ -550,11 +556,11 @@
 	# dev.off()
 
 # say('######################################################')
-# say('### collate training detections and non-detections ###')
+# say('### collate TRAINING detections and non-detections ###')
 # say('######################################################')	
 	
 	# dirCreate('./Data/Occurrences')
-	# surveys <- readRDS(paste0(drive, '/Ecology/Drive/Research/Iconic Species/Species Records - Pika/!Collated Data 2016-06-30 1256/00 Pika - Cleaned Using R - Usable Records for All Ochotona.rds'))
+	# surveys <- readRDS(paste0(drive, '/Ecology/Drive/Research Done/Iconic Species/Species Records - Pika/!Collated Data 2016-06-30 1256/00 Pika - Cleaned Using R - Usable Records for All Ochotona.rds'))
 
 	# mask <- raster(paste0('./Study Region/mask_prism_sierraNevadaEpaLevel3Plus', studyRegionBuffer, 'kmBuffer.tif'))
 	
@@ -569,6 +575,8 @@
 			# surveys$contact == 'Erik Beever' |
 			# surveys$contact == 'Erik Beever;' |
 			# surveys$contact == 'Ken Goehring;' |
+			# surveys$contact == 'Joseph Stewart' |
+			# surveys$contact == 'Joseph Stewart, David Wright, Chris Curlis' |
 			# surveys$contact == 'Jason Brewer & Mary Flores' |
 			# surveys$contact == 'Clint Epps, Jessica Castillo' |
 			# surveys$contact == 'Jess Castillo, Clint Epps' |
@@ -584,7 +592,7 @@
 	# save(surveys, file='./Data/Occurrences/Training Surveys 01 Pika - Selected Detections and Non-Detections from Data Providers in Study Region.rda')
 
 # say('##################################################')
-# say('### collate test detections and non-detections ###')
+# say('### collate TEST detections and non-detections ###')
 # say('##################################################')
 	
 	# ### clean
@@ -647,28 +655,35 @@
 # say('### construct KDE on TRAINING occurrences to identify gap ###')
 # say('#############################################################')
 
+	# # mask
+	# mask <- rast(paste0('./Study Region/mask_prism_sierraNevadaEpaLevel3Plus', studyRegionBuffer, 'kmBuffer.tif'))
+	# mask <- project(mask, getCRS('albersNA'))
+
 	# # occurrences
 	# load('./Data/Occurrences/Training Surveys 01 Pika - Selected Detections and Non-Detections from Data Providers in Study Region.rda')
 	# pres <- surveys[surveys$origRecentPikaOrSignsObserved, ]
-	# presSp <- SpatialPointsDataFrame(pres[ , ll], data=pres, proj4=getCRS('wgs84', TRUE))
-	# presSpEa <- sp::spTransform(presSp, getCRS('albersNA', TRUE))
+	# presSp <- vect(pres, geom = ll, getCRS('wgs84'))
+	# presSpEa <- project(presSp, mask)
+
+	# # cropping occurrences to vicinity around gap because the long north-south extent of the Sierras makes the bandwidth biased latitudinally
+	# load('./Study Region/GADM GAP Counties.rda')
+	# gapCounties <- vect(gapCounties)
+	# gapCounties <- buffer(gapCounties, 50000)
+	# gapCounties <- project(gapCounties, getCRS('albersNA'))
+	# extent <- as.vector(ext(gapCounties))
 	
-	# # mask
-	# mask <- raster(paste0('./Study Region/mask_prism_sierraNevadaEpaLevel3Plus', studyRegionBuffer, 'kmBuffer.tif'))
-	# maskEa <- projectRaster(mask, crs=getCRS('albersNA'))
-	# maskEa <- round(maskEa)
-	
+	# coords <- crds(presSpEa)
+	# presSpEa <- presSpEa[coords[ , 'y'] <= extent[['ymax']] & coords[ , 'y'] >= extent[['ymin']], ]
+
 	# ### KDE
-	
 	# # # Gaussian bandwidth
-	# # bw <- 0.5 * sum(apply(coordinates(presSpEa), 2, sd)) * nrow(presSp)^(-1/6)
+	# # bw <- 0.5 * sum(apply(crds(presSpEa), 2, sd)) * nrow(presSpEa)^(-1/6)
 	
 	# # Epanechnikov bandwidth
-	# bw <- 1.77 * 0.5 * sum(apply(coordinates(presSpEa), 2, sd, na.rm=T)) * nrow(presSp)^(-1/6)
+	# bw <- 1.77 * 0.5 * sum(apply(crds(presSpEa), 2, sd, na.rm=T)) * nrow(presSp)^(-1/6)
 	
-	# kde <- spatialEco::sp.kde(presSpEa, bw=bw, newdata=maskEa, standardize=TRUE)
-	
-	# writeRaster(kde, './KDE/kde')
+	# kde <- spatialEco::sp.kde(st_as_sf(presSpEa), bw=bw, ref=mask, standardize=TRUE)
+	# writeRaster(kde, './KDE/kde.tif', overwrite = TRUE)
 	
 # say('###########################################')
 # say('### map of gap sampling in focal region ###')
@@ -693,6 +708,14 @@
 	# nam2 <- readRDS('C:/Ecology/Drive/Research Data/GADM/version_4.1/North America Level 2 sans Great Lakes SpatVector Albers.rds')
 	# nam1 <- nam1[nam1$NAME_1 %in% c('California', 'Arizona', 'New Mexico', 'Utah', 'Oregon', 'Washington', 'Baja California', 'Baja California Sur', 'Idaho', 'Nevada', 'British Columbia', 'Sonora', 'Chihuahua', 'Montana', 'Sinola'), ]
 	# nam2 <- nam2[nam2$NAME_1 %in% c('California'), ]
+
+	# ### lakes
+	# lakes <- shapefile(paste0(drive, '/Ecology/Drive/Research Data/North America Rivers and Lakes USGS/hydrography_p_lakes_v2.shp'))
+	# for (i in 1:20) {
+		# maxs <- which.max(lakes$Shape_Leng)
+		# lakes <- lakes[-maxs, ]
+	# }
+	# lakes <- sp::spTransform(lakes, getCRS('climateNA', TRUE))
 
 	# # training occurrences
 	# load('./Data/Occurrences/Training Surveys 01 Pika - Selected Detections and Non-Detections from Data Providers in Study Region.rda')
@@ -723,10 +746,16 @@
 	
 	# # kde
 	# kde <- raster('./KDE/kde.tif')
-	# kde <- projectRaster(kde, crs=getCRS('climateNA'))
+	# beginCluster(4)
+		# kde <- projectRaster(kde, crs=getCRS('climateNA'))
+	# endCluster()
+
 	# kdeVals <- extract(kde, trainPresSpEa)
-	# quants <- quantile(kdeVals, c(0.05, 0.1))
-	# breaks <- c(0, min(kdeVals), quants, 1)
+	# quants <- quantile(kdeVals[kdeVals > 0], c(0.05, 0.1), na.rm = TRUE)
+
+	# # kdeVals <- extract(kde, trainPresSpEa)
+	# # quants <- quantile(kdeVals, c(0.05, 0.1))
+	# breaks <- c(0, min(kdeVals[kdeVals > 0]), quants, 1)
 	# kdeClass <- cut(kde, breaks=breaks)
 
 	# # colors
@@ -746,7 +775,7 @@
 	# testLongTermPch <- 6
 
 	# # plot
-	# png('./Figures & Tables/Gap Sampling 2.png', width=1200, height=1200, res=300)
+	# png('./Figures & Tables/Gap Sampling.png', width=1200, height=1200, res=300)
 		
 		# par(mar=c(2, 1, 1, 1), cex.axis=0.4, mgp=c(3, 0, 0.2))
 		
@@ -759,6 +788,7 @@
 		# axis(2, at=ys, tck=0.01, labels=ys, col=NA, col.ticks='black')
 		
 		# plot(hs, col=grays, legend=FALSE, add=TRUE)
+		# plot(lakes, col = 'gray60', border = NA, add = TRUE)
 		# plot(kdeClass, col=kdeCols, legend=FALSE, add=TRUE)
 		# plot(west2, border='gray40', add=TRUE)
 		# plot(west1, border='gray40', lwd=2, add=TRUE)
@@ -844,7 +874,8 @@
 		# axis(1, at=xs, tck=0.01, labels=xs, col=NA, col.ticks='black')
 		# axis(2, at=ys, tck=0.01, labels=ys, col=NA, col.ticks='black')
 		
-		# # plot(hs, col=grays, legend=FALSE, add=TRUE)
+		# plot(hs, col=grays, legend=FALSE, add=TRUE)
+		# plot(lakes, col = 'gray60', border = NA, add = TRUE)
 		# plot(kdeClass, col=kdeCols, legend=FALSE, add=TRUE)
 		# plot(west2, border='gray40', add=TRUE)
 		# plot(west1, border='gray40', lwd=2, add=TRUE)
@@ -935,6 +966,8 @@
 		# axis(2, at=ys, tck=0.01, labels=ys, col=NA, col.ticks='black')
 		
 		# plot(hs, col=grays, legend=FALSE, add=TRUE)
+		# plot(lakes, col = 'gray60', border = NA, add = TRUE)
+
 		# iucnSp <- as(iucn, 'Spatial')
 		# iucnSp <- sp::spTransform(iucnSp, CRS(proj4string(west1)))
 		# iucnSp <- gBuffer(iucnSp, width=20*1000)
@@ -1033,9 +1066,9 @@
 		
 	# dev.off()
 
-# say('##########################################')
-# say('### map of gap sampling across Sierras ###')
-# say('##########################################')
+# say('########################################## NOT REDONE in V2!!!')
+# say('### map of gap sampling across Sierras ### NOT REDONE in V2!!!')
+# say('########################################## NOT REDONE in V2!!!')
 
 	# # generalize
 	# focusBuff <- 1 # buffer size around test sites for generating focus of plot (in km)
@@ -1323,7 +1356,9 @@
 	# trainPres$provider[trainPres$contact %in% c('Adam Smith;')] <- 'online database'
 	# trainPres$provider[trainPres$contact %in% c('Jason Brewer & Mary Flores')] <- 'Jason Brewer & Mary Flores'
 	# trainPres$provider[trainPres$contact %in% c('Ken Goehring;')] <- 'Ken Goehring'
-	
+	# trainPres$provider[trainPres$contact %in% c('Joseph Stewart')] <- 'Joseph Stewart'
+	# trainPres$provider[trainPres$contact %in% c('Joseph Stewart, David Wright, Chris Curlis')] <- 'Joseph Stewart, David Wright, Chris Curlis'
+
 	# providers <- sort(unique(trainPres$provider))
 	
 	# ### generate breaks for distance bins
@@ -1409,7 +1444,7 @@
 	# ### test occurrences
 	# testSites <- read.csv('./Data/Occurrences/Test Surveys 02 Cleaned.csv')
 	# testSitesSp <- SpatialPoints(testSites[ , ll], getCRS('wgs84', TRUE))
-	
+
 	# ### mask
 	# mask <- raster(paste0('./Study Region/mask_prism_sierraNevadaEpaLevel3Plus', studyRegionBuffer, 'kmBuffer.tif'))
 	
@@ -1517,8 +1552,8 @@
 # say('######################################################')
 
 	# # spatial data
-	# study <- shapefile('./Study Region/epa3_sierraNevadaSarrModified_200kmBuffer')
-	# sn <- shapefile('./Study Region/epa3_sierraNevadaSarrModified')
+	# study <- shapefile('./Study Region/epa3_sierraNevadaSarrModified_200kmBuffer.shp')
+	# sn <- shapefile('./Study Region/epa3_sierraNevadaSarrModified.shp')
 	# load('./Study Region/GADM California, Nevada, Oregon States.rda')
 	# load('./Study Region/GADM California, Nevada, Oregon Counties.rda')
 	
@@ -1532,7 +1567,7 @@
 	
 	# png('./Figures & Tables/Spatial Autocorrelation between Survey Sites/!Maps of Weighting by Provider.png', width=1600, height=800, res=200)
 		
-		# par(mfrow=c(2, 4), mar=c(1, 1, 4, 1))
+		# par(mfrow=c(2, 5), mar=c(1, 1, 4, 1))
 		
 		# for (countProv in seq_along(providers)) {
 			
@@ -1579,8 +1614,8 @@
 # say('##################################################')
 
 	# # spatial data
-	# study <- shapefile('./Study Region/epa3_sierraNevadaSarrModified_200kmBuffer')
-	# sn <- shapefile('./Study Region/epa3_sierraNevadaSarrModified')
+	# study <- shapefile('./Study Region/epa3_sierraNevadaSarrModified_200kmBuffer.shp')
+	# sn <- shapefile('./Study Region/epa3_sierraNevadaSarrModified.shp')
 	# load('./Study Region/GADM California, Nevada, Oregon States.rda')
 	# load('./Study Region/GADM California, Nevada, Oregon Counties.rda')
 	
@@ -1812,19 +1847,19 @@
 	# ### BRT
 	# set.seed(123)
 	# say('brt')
-	# model <- trainBrt(train, resp='presBg', preds=pcs, w='weight', verbose=TRUE)
+	# model <- enmSdmX::trainBRT(train, resp='presBg', preds=pcs, w='weight', verbose=TRUE)
 	# save(model, file='./ENMs/ENM BRT.rda')
 	# rm(model); gc()
 	
 	# ### GLM
 	# say('glm')
-	# model <- trainGlm(train, resp='presBg', preds=pcs, w='weight', initialTerms=5, interaction=TRUE, verbose=TRUE)
+	# model <- enmSdmX::trainGLM(train, resp='presBg', preds=pcs, w='weight', interaction = TRUE, quadratic = TRUE, verbose=TRUE)
 	# save(model, file='./ENMs/ENM GLM.rda')
 	# rm(model); gc()
 	
 	# ### GAM
 	# say('gam')
-	# model <- trainGam(train, resp='presBg', preds=pcs, w='weight', verbose=TRUE)
+	# model <- enmSdm::trainGam(train, resp='presBg', preds=pcs, w='weight', verbose=TRUE)
 	# save(model, file='./ENMs/ENM GAM.rda')
 	# rm(model); gc()
 
@@ -1893,7 +1928,7 @@
 	# } # next PC
 	
 	# write.csv(varImp, './Figures & Tables/Predictor Importance in Ensemble Model.csv')
-	
+
 # say('#########################')
 # say('### write ENM rasters ###')
 # say('#########################')	
@@ -2028,31 +2063,59 @@
 	# load('./ENMs/Background Sites/PCA on Random Background Sites from across Study Region Mask.rda')
 	
 	# load('./Data/Occurrences/Training Surveys 03 Pika - Extracted Environmental Values with PCA.rda')
-	# testSurveys <- read.csv('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
+	# testSurveys <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
+	# testSurveys <- as.data.frame(testSurveys)
 	
 	# pcs <- c('pc1', 'pc2')
-	# cex <- 2.1
+	# cex <- 0.4
 
-	# ### figure with background as background
+	# ### loadings
+	# loads <- pca$loadings
+	# loads <- as.data.frame(loads)
+	# loads <- loads[complete.cases(loads), ]
+	# loads <- as.data.frame(loads)
+	# names(loads) <- paste0('PC', 1:9)
+	# rownames(loads) <- c('eastness', 'northness', 'acute cold', 'chronic heat', 'water deficit', 'solar radiation', 'summer respite', 'SWE', 'NDVI')
 	
-	# png('./Figures & Tables/PCA with Test Classes.png', width=900, height=900)
-	
-		# par(cex.axis=1.8, cex.lab=2, c(5, 7, 4, 2) + 0.1)
+
+	# xlab <- paste0('PC1 (', round(100 * pca$sdev[1]^2 / sum(pca$sdev^2), 1), '%)')
+	# ylab <- paste0('PC2 (', round(100 * pca$sdev[2]^2 / sum(pca$sdev^2), 1), '%)')
+	# png('./Figures & Tables/PCA with Test Classes.png', width=1800, height=1800, res=600)
+
+		# par(cex.axis=0.5, cex.lab=0.6, mar=rep(1.8, 4), oma=rep(0, 4), lwd=0.6, bty='n', mgp=c(0.7, -0, 0), tck=-0.01)
 		
-		# smoothScatter(pca$scores[ , 1:2], pch=16, nrpoints=0, xlab='PC 1', ylab='PC 2')
-		# points(trainPres[ , pcs], pch=3, col=alpha('black', 0.4), cex=1.6)
+		# smoothScatter(pca$scores[ , 1:2], pch=16, nrpoints=0, xlab=xlab, ylab=ylab)
+		# points(trainPres[ , pcs], pch=3, col=alpha('black', 0.4), cex=0.5 * cex)
 		
 		# pres <- testSurveys[testSurveys$status == '2 detected', ]
 		# recentAbs <- testSurveys[testSurveys$status == '1 recent absence', ]
 		# longTermAbs <- testSurveys[testSurveys$status == '0 long absence', ]
 		
-		# points(longTermAbs[ , pcs], pch=25, bg=NA, col='red', cex=cex)
-		# points(recentAbs[ , pcs], pch=23, bg=NA, col='yellow', cex=cex)
-		# points(pres[ , pcs], pch=21, bg=NA, col='green', cex=cex)
+		# points(longTermAbs[ , pcs], pch=25, bg='red', cex=cex)
+		# points(recentAbs[ , pcs], pch=23, bg='yellow', cex=cex)
+		# points(pres[ , pcs], pch=21, bg='green', cex=cex)
+
+		# mult <- 4
+		# x0 <- 10.3
+		# y0 <- -3
+		# for (i in 1:9) {
 		
-		# legend('topleft', inset=0.01, legend=c('Background', 'Training presence', 'Test presence', 'Test recent absence', 'Test long-term absence'), pch=c(NA, 3, 1, 5, 6), fill=c(blues9[6], NA, NA, NA, NA), col=c(NA, 'black', 'green', 'yellow', 'red'), border=c('black', NA, NA, NA, NA), bg='white', cex=cex)
-		
-	# dev.off()
+			# arrows(x0, y0, x0 + loads[i, 1] * mult, y0 + loads[i, 2] * mult, angle=20, length=0.07, xpd=NA)
+			
+			# label <- rownames(loads)[i]
+			# if (label == 'summer respite') {
+				# ydelta <- + 0.2
+			# } else {
+				# ydelta <- 0
+			# }
+			
+			# text(x0 + loads[i, 1] * mult, y0 + loads[i, 2] * mult + ydelta, labels = label, cex=0.5, xpd=NA)
+		# }
+
+		# legend('topleft', inset=c(0.01, 0.1), legend=c('Background', 'Previously-known occurrence', 'Occupied', 'Formerly occupied', 'No evidence'), pch=c(NA, 3, 21, 23, 25), fill=c(blues9[6], NA, NA, NA, NA), col=c(NA, 'black', 'black', 'black', 'black'), pt.bg = c(NA, NA, 'green', 'yellow', 'red'), border=c('black', NA, NA, NA, NA), bty='n', bg=NA, cex=cex, xpd=NA)
+
+
+	# dev.off()	
 	
 # say('##############################################################################')
 # say('### visual comparison of background, TRAINING, and TEST sites by predictor ###')
@@ -2103,7 +2166,7 @@
 		# dev.off()
 	
 	# }
-
+	
 # say('##########################')
 # say('### map of predictions ###')
 # say('##########################')
@@ -2161,6 +2224,15 @@
 	# beginCluster(4)
 		# pred <- projectRaster(pred, crs=getCRS('climateNA'))
 	# endCluster()
+
+	# ### lakes
+	# lakes <- shapefile(paste0(drive, '/Ecology/Drive/Research Data/North America Rivers and Lakes USGS/hydrography_p_lakes_v2.shp'))
+	# for (i in 1:20) {
+		# maxs <- which.max(lakes$Shape_Leng)
+		# lakes <- lakes[-maxs, ]
+	# }
+	# lakes <- sp::spTransform(lakes, getCRS('climateNA', TRUE))
+
 	
 	# ### colors for points
 	# trainPresCol <- 'black'
@@ -2261,6 +2333,7 @@
 			# }
 			
 			# plot(hs, col=grays, legend=FALSE, add=TRUE)
+			# plot(lakes, col = 'gray60', border = NA, add = TRUE)
 			# plot(predClass, col=c(NA, col), legend=FALSE, add=TRUE)
 			# plot(west2, border='gray40', add=TRUE)
 			# plot(west1, lwd=2, add=TRUE)
@@ -2319,6 +2392,7 @@
 		# plot(focus, border='white')
 		# axis(1, at=pretty(c(usr[1:2]), 3)[1:3], tck=-0.01)
 		# plot(hs, col=alpha(grays, 0.8), legend=FALSE, add=TRUE)
+		# plot(lakes, col = 'gray60', border = NA, add = TRUE)
 		# plot(longTermRast, col=c(NA, predLongTermAbsCol), legend=FALSE, add=TRUE)
 		# plot(shortTermRast, col=c(NA, predShortTermAbsCol), legend=FALSE, add=TRUE)
 		# plot(presRast, col=c(NA, predPresCol), legend=FALSE, add=TRUE)
@@ -2403,7 +2477,6 @@
 		# title(sub=date(), cex.sub=0.3, outer=TRUE, line=2)
 			
 	# dev.off()
-
 	
 # say('#######################################')
 # say('### confusion matrix of predictions ###')
@@ -2544,5 +2617,63 @@
 	# maxs <- colMeans(maxs)
 	# mins <- colMeans(mins)
 	# swe <- colMeans(swe)
+
+say('##################################################################')
+say('### graph of elevation of calibration and survey sites by type ###')
+say('##################################################################')
+
+	# Make a violin plot of occurrences/test sites where y-axis is elevation and x is category (train, test no evidence, test recent evidence, test occupied)
+
+	# prismElev <- rast('./Data/Topography - SRTM/elevation_srtm_m.tif')
+	prismElev <- rast('E:/Ecology/Drive/Research Data/PRISM/PRISM_us_dem_800m.tif')
+
+	# records
+	load('./Data/Occurrences/Training Surveys 03 Pika - Extracted Environmental Values with PCA.rda')
+	test <- fread('./Data/Occurrences/Test Surveys 04 Extracted Environmental Values with PCA.csv')
+
+	# convert to spatial
+	test <- vect(test, geom = c('longWgs84', 'latWgs84'), crs = getCRS('wgs84'))
+	trainPres <- vect(trainPres, geom = c('longWgs84', 'latWgs84'), crs = getCRS('wgs84'))
+
+	# remove training presences far from test presenecs (to accomodate latitudinal shift in minimum pika elevation)
+	buff <- buffer(test, 100 * 1000)
+	extent <- ext(buff)
+	extent <- vect(extent, crs = getCRS('wgs84'))
+
+	inBox <- extract(extent, trainPres)
+	trainPres <- trainPres[!is.na(inBox[ , 'id.x']), ]
+
+	testElev <- extract(prismElev, test, ID = FALSE)
+	trainElev <- extract(prismElev, trainPres, ID = FALSE)
+
+	testElev$status <- test$status
+	testElev$status[testElev$status == '0 long absence'] <- 'Long-term test absence'
+	testElev$status[testElev$status == '1 recent absence'] <- 'Recent test absence'
+	testElev$status[testElev$status == '2 detected'] <- 'Test presence'
+
+	trainElev$status <- 'Previously-known presence'
+
+	elevs <- rbind(trainElev, testElev)
+	
+	elevs$status <- factor(elevs$status, levels = c('Previously-known presence', 'Long-term test absence', 'Recent test absence', 'Test presence'), ordered = TRUE)
+	
+	graph <- ggplot(elevs, aes(x = status, y = PRISM_us_dem_800m, fill = status)) +
+	
+		geom_violin() +
+		scale_x_discrete(
+			labels = c('Previously-known presence' = 'Previously-known\npresence','Long-term test absence' = 'Long-term\ntest absence', 'Recent test absence' = 'Recent\ntest absence', 'Test presence' = 'Test\npresence')
+		) +
+		scale_fill_manual(
+			values = c('Previously-known presence' = 'black','Long-term test absence' = 'darkred', 'Recent test absence' = 'yellow', 'Test presence' = 'darkgreen')
+		) + 
+		xlab('') + ylab('Elevation (m)') +
+		theme(
+			legend.position = 'none',
+			axis.text = element_text(size = 18),
+			axis.title = element_text(size = 22)
+		)
+	
+	ggsave(graph, file = './Figures & Tables/Elevation by Sites.png', dpi = 600, width = 8, height = 8)
+
 
 say('DONE!!!!!!!!!!!!!!!!!!!!!!!!!!!!', level=1, pre=1)

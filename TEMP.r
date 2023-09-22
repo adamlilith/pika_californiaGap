@@ -1,117 +1,41 @@
-# source('C:/Ecology/Drive/Research/Pikas - California Gap (Erik Beever et al)/Code/TEMP.r')
+# source('E:/Ecology/Drive/Research/Pikas - California Gap (Erik Beever et al) V2/Code/TEMP.r')
 
-	iucn <- vect(paste0(drive, '/Ecology/Drive/Research Data/IUCN Range Maps/Data/MAMMALS_TERRESTRIAL_ONLY.shp'))
-	iucn <- iucn[iucn$binomial == 'Ochotona princeps', ]
-	iucn <- project(iucn, nam1)
 
-	# plot
-	png('./Figures & Tables/Gap Sampling Plumas Emphasized with Range Maps & No Survey Sites.png', width=1200, height=1200, res=300)
-		
-		par(mar=c(2, 1, 1, 1), cex.axis=0.4, mgp=c(3, 0, 0.2), fig=c(0, 1, 0, 1))
-		
-		plot(focus, border='white')
-		
-		usr <- par('usr')
-		xs <- pretty(c(usr[1], usr[2]))
-		ys <- pretty(c(usr[3], usr[4]))
-		axis(1, at=xs, tck=0.01, labels=xs, col=NA, col.ticks='black')
-		axis(2, at=ys, tck=0.01, labels=ys, col=NA, col.ticks='black')
-		
-		plot(hs, col=grays, legend=FALSE, add=TRUE)
-		iucnSp <- as(iucn, 'Spatial')
-		iucnSp <- sp::spTransform(iucnSp, CRS(proj4string(west1)))
-		iucnSp <- gBuffer(iucnSp, width=20*1000)
-		iucnSp <- gBuffer(iucnSp, width=-20*1000)
-		plot(iucnSp, col=alpha('forestgreen', 0.5), add=TRUE)
+	xlab <- paste0('PC1 (', round(100 * pca$sdev[1]^2 / sum(pca$sdev^2), 1), '%)')
+	ylab <- paste0('PC2 (', round(100 * pca$sdev[2]^2 / sum(pca$sdev^2), 1), '%)')
+	png('./Figures & Tables/PCA with Test Classes.png', width=1800, height=1800, res=600)
 
-		testSurveysSpEa <- testSurveysSpEa[order(testSurveysSpEa$status), ]
+		par(cex.axis=0.5, cex.lab=0.6, mar=rep(1.8, 4), oma=rep(0, 4), lwd=0.6, bty='n', mgp=c(0.7, -0, 0), tck=-0.01)
 		
-		plot(kdeClass, col=kdeCols, legend=FALSE, add=TRUE)
-		plot(west2, border='gray40', add=TRUE)
-		plot(west1, border='gray40', lwd=2, add=TRUE)
-		plot(west2[west2$NAME_2 == 'Plumas', ], border='gray40', lwd=3, add=TRUE)
+		smoothScatter(pca$scores[ , 1:2], pch=16, nrpoints=0, xlab=xlab, ylab=ylab)
+		points(trainPres[ , pcs], pch=3, col=alpha('black', 0.4), cex=0.5 * cex)
+		
+		pres <- testSurveys[testSurveys$status == '2 detected', ]
+		recentAbs <- testSurveys[testSurveys$status == '1 recent absence', ]
+		longTermAbs <- testSurveys[testSurveys$status == '0 long absence', ]
+		
+		points(longTermAbs[ , pcs], pch=25, bg='red', cex=cex)
+		points(recentAbs[ , pcs], pch=23, bg='yellow', cex=cex)
+		points(pres[ , pcs], pch=21, bg='green', cex=cex)
 
-		# cols <- rep(NA, nrow(testSurveys))
-		# cols[testSurveysSpEa$status == '0 long absence'] <- testLongTermAbsCol
-		# cols[testSurveysSpEa$status == '1 recent absence'] <- testShortTermAbsCol
-		# cols[testSurveysSpEa$status == '2 detected'] <- testPresCol
+		mult <- 4
+		x0 <- 10.3
+		y0 <- -3
+		for (i in 1:9) {
 		
-		# pchs <- rep(NA, nrow(testSurveys))
-		# pchs[testSurveysSpEa$status == '0 long absence'] <- testLongTermPch
-		# pchs[testSurveysSpEa$status == '1 recent absence'] <- testShortTermPch
-		# pchs[testSurveysSpEa$status == '2 detected'] <- testPresPch
-		
-		points(trainPresSpEa, pch=trainPresPch, cex=0.5, col=trainPresCol)
-		# points(testSurveysSpEa, pch=pchs, col=cols, cex=0.6)
-		box()
-		
-		# legend
-		legendBreaks(
-			'bottomleft',
-			inset=0.01,
-			height=0.39,
-			width=0.30,
-			title='Density of previously-\nknown occurrences',
-			titleAdj=c(0.5, 0.9),
-			col=kdeCols,
-			adjX=c(0.08, 0.225),
-			adjY=c(0.35, 0.77),
-			labels=c('\U2265min presence', paste0('\U2265', '5th percentile'), paste0('  \U2265', '10th percentile')),
-			labAdjX=0.58,
-			cex=0.57,
-			boxBg=alpha('white', 0.8)
-		)
-		
-		usr <- par('usr')
-		width <- usr[2] - usr[1]
-		height <- usr[4] - usr[3]
-		x <- usr[1] + 0.01 * width
-		y <- usr[3] + 0.15 * height
-		
-		legend(
-			x,
-			y,
-			legend=c('Previously-known\noccurrence', 'IUCN range'),
-			pch=c(trainPresPch, NA),
-			col=c(trainPresCol, 'black'),
-			fill=c(NA, 'darkolivegreen3'),
-			border=c(NA, 'black'),
-			bty='n',
-			cex=0.57,
-			pt.cex=0.7
-		)
-		
-		# scale bar
-		size <- 50000 # length of scale bar in meters
-		x <- usr[2] - size - 0.02 * width
-		x <- c(x, x + size)
-		y <- usr[3] + rep(0.02 * height, 2)
-		
-		lines(x, y, lwd=4, xpd=NA, col='black', lend=1)
-		
-		x <- mean(x)
-		y <- usr[3] + 0.05 * height
-		text(x, y[1], labels=paste(size / 1000, 'km'), cex=0.7)
+			arrows(x0, y0, x0 + loads[i, 1] * mult, y0 + loads[i, 2] * mult, angle=20, length=0.07, xpd=NA)
+			
+			label <- rownames(loads)[i]
+			if (label == 'summer respite') {
+				ydelta <- + 0.2
+			} else {
+				ydelta <- 0
+			}
+			
+			text(x0 + loads[i, 1] * mult, y0 + loads[i, 2] * mult + ydelta, labels = label, cex=0.5, xpd=NA)
+		}
 
-		title(sub=date(), cex.sub=0.3, outer=TRUE, line=-1)
-		
-		# inset
-		insetNam <- nam1[nam1$NAME_1 %in% c('California', 'Oregon', 'Baja California', 'Baja California Sur', 'Washington'), ]
-		insetNam <- ext(insetNam)
-		insetNam <- vect(insetNam, crs=crs(nam1))
-		insetNam <- buffer(insetNam, 100 * 1000)
-		insetNam <- ext(insetNam)
-		insetNam <- vect(insetNam, crs=crs(nam1))
+		legend('topleft', inset=c(0.01, 0.1), legend=c('Background', 'Previously-known occurrence', 'Occupied', 'Formerly occupied', 'No evidence'), pch=c(NA, 3, 21, 23, 25), fill=c(blues9[6], NA, NA, NA, NA), col=c(NA, 'black', 'black', 'black', 'black'), pt.bg = c(NA, NA, 'green', 'yellow', 'red'), border=c('black', NA, NA, NA, NA), bty='n', bg=NA, cex=cex, xpd=NA)
 
-		par(fig = c(0.6, 1, 0.0, 0.65), bg='white', new=TRUE)
-		plot(insetNam, col='white', axes=FALSE, bty='o')
-		plot(crop(nam1, insetNam), col='gray80', lwd=0.1, add=TRUE)
-		plot(crop(iucn, insetNam), col='forestgreen', lwd=0.2, add=TRUE)
-		
-		counties <- nam2[nam2$NAME_2 %in% gapCounties$NAME_2, ]
-		counties <- ext(counties)
-		foc <- vect(counties, crs=crs(nam2))
-		plot(foc, lwd=2, add=TRUE)
 
-		
 	dev.off()
