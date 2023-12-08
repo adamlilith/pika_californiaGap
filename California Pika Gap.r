@@ -11,6 +11,7 @@
 ### collate TRAINING detections and non-detections ###
 ### collate TEST detections and non-detections ###
 ### construct KDE on TRAINING occurrences to identify gap ###
+### measure gap area ###
 
 ### map of gap sampling in focal region ###
 ### map of gap sampling across Sierras ###
@@ -67,7 +68,7 @@
 	# TerraClimate
 	tcDrive <- 'F:'
 
-	setwd(paste0(drive, '/ecology/Drive/Research/Pikas - California Gap (Erik Beever et al) V2'))
+	setwd(paste0(drive, '/ecology/Drive/Research/Pikas - California Gap (Erik Beever et al)'))
 
 	prismCrs <- '+proj=longlat +datum=NAD83 +no_defs'
 
@@ -684,6 +685,79 @@
 	
 	# kde <- spatialEco::sp.kde(st_as_sf(presSpEa), bw=bw, ref=mask, standardize=TRUE)
 	# writeRaster(kde, './KDE/kde.tif', overwrite = TRUE)
+	
+say('########################')
+say('### measure gap area ###')
+say('########################')
+
+	# Measurig "gap" area using area of triangles of Delauney triangulation
+	
+	### area of gap prior to sampling (model training occurrenecs)
+	##############################################################
+	load('./Study Region/GADM GAP Counties.rda')
+	
+	load('./Data/Occurrences/Training Surveys 03 Pika - Extracted Environmental Values with PCA.rda')
+	trainPres <- vect(trainPres, geom = c('longWgs84', 'latWgs84'), crs = prismCrs)
+	
+	del <- delaunay(trainPres)
+	
+	plot(gapCounties, border = 'red')
+	plot(trainPres, add = TRUE)
+	plot(del, add = TRUE)
+	delArea_km2 <- expanse(del) / 1000^2
+	
+	# manually select triangles
+	pts <- click(n = 6)
+
+	gapDel <- extract(del, pts)
+	del$area_km2 <- delArea_km2
+	
+	gapArea_km2 <- sum(del$area_km2[gapDel[ , 'id.x']])
+	sierraNevadaOccsMcp_km2 <- sum(del$area_km2)
+	
+	### area of "recently-occupied" gap (area of "recent occupied" area predicted by model within gap Delauney triangles)
+	#####################################################################################################################
+	
+	### ENM predictions in the "yellow" zone
+	pred <- rast('./ENMs/predictionEnsemble.tif')
+	pred <- pred / 1000
+	predVals <- extract(pred, testSurveys, ID = FALSE)
+	predVals <- unlist(predVals)
+	
+	predPres <- predVals[testSurveys$status == '2 detected']
+	predShortTerm <- predVals[testSurveys$status == '1 recent absence']
+	predLongTerm <- predVals[testSurveys$status == '0 long absence']
+
+	tholdPres_vs_shortTermAbs <- enmSdmX::evalThreshold(predPres, predShortTerm)[['mdss']]
+	tholdPres_vs_longTermAbs <- enmSdmX::evalThreshold(predPres, predLongTerm)[['mdss']]
+	tholdShortTerm_vs_longTermAbs <- enmSdmX::evalThreshold(predShortTerm, predLongTerm)[['mdss']]
+	
+	predRecentOcc <- pred > tholdShortTerm_vs_longTermAbs & pred < tholdPres_vs_shortTermAbs
+		
+	gapDel <- del[gapDel[ , 'id.x'], ]
+	
+	cellAreas_km2 <- cellSize(pred) / 1000^2
+	cellAreas_km2 <- predRecentOcc * cellAreas_km2
+	
+	plot(cellAreas_km2)
+	plot(gapDel, add = TRUE)
+
+	recentAbsAreaInGap_km2 <- extract(cellAreas_km2, gapDel, ID = FALSE, weight = TRUE)
+	recentAbsAreaInGap_km2 <- sum(apply(recentAbsAreaInGap_km2, 1, prod))
+
+	sink('./Figures & Tables/Area of Gap.txt', split = TRUE)
+		say(date())
+		say('')
+		say('Area of pika gap estimated from previously-known occurrences using Delauney triangles is ', round(gapArea_km2), ' km2.')
+		say('Area of all previously-known occurrences using MCP is ', round(sierraNevadaOccsMcp_km2), ' km2.')
+		say('')
+		say('Area that was recently suitable in the gap but is now unoccupied (area predicted to be "recent absence" class) is ', round(recentAbsAreaInGap_km2), ' km2.')
+		say('')
+		say('Current gap : Sierra Nevada total: ', round(gapArea_km2 / sierraNevadaOccsMcp_km2, 5))
+		say('Suitable area lost / gap area: ', round(recentAbsAreaInGap_km2 / gapArea_km2, 5))
+		say('Gap was until recently ', round(100 * (gapArea_km2 - gapArea_km2 / (1 + recentAbsAreaInGap_km2 / gapArea_km2)) / gapArea_km2, 1), '% smaller.')
+		
+	sink()
 	
 # say('###########################################')
 # say('### map of gap sampling in focal region ###')
