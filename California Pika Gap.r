@@ -1,4 +1,4 @@
-### Ochotona princeps - Spatially-varying importance of variables
+### OCHOTONA PRINCEPS - SPATIALLY-VARYING IMPORTANCE OF VARIABLES
 ### Adam B. Smith | Missouri Botanical Garden | adam.smith@mobot.org | 2017-02
 ###
 ### source('C:/Ecology/Drive/Research/Pikas - California Gap (Erik Beever et al)/pika_californiaGap/California Pika Gap.r')
@@ -11,7 +11,6 @@
 ### collate TRAINING detections and non-detections ###
 ### collate TEST detections and non-detections ###
 ### construct KDE on TRAINING occurrences to identify gap ###
-### measure gap area ###
 
 ### map of gap sampling in focal region ###
 ### map of gap sampling across Sierras ###
@@ -41,10 +40,8 @@
 ### calculate climate means for gap area ###
 
 ### graph of elevation of calibration and survey sites by type ###
-
-######################
-### generalization ###
-######################
+### ancillary analyses of sites ###
+### measure gap area ###
 
 
 ###########################################
@@ -57,9 +54,9 @@
 	set.seed(1234567890)
 	
 	# working drive
-	# drive <- 'C:'
+	drive <- 'C:'
 	# drive <- 'D:'
-	drive <- 'E:'
+	# drive <- 'E:'
 
 	# PRISM
 	# prismDrive <- 'F:'
@@ -78,14 +75,15 @@
 
 		library(data.table)
 		library(dismo)
+		library(enmSdm)
 		library(gbm)
 		library(rgdal)
 		library(mgcv)
-		library(fasterRaster)
+		# library(fasterRaster)
 		library(geosphere)
 		library(cluster)
 		library(ggplot2)
-		library(fossil)
+		# library(fossil)
 		library(party)
 		library(rgeos)
 		library(raster)
@@ -589,6 +587,7 @@
 	# inStudyRegion <- raster::extract(mask, surveys[ , ll])
 	
 	# surveys <- surveys[!is.na(inStudyRegion), ] # just in Sierra Nevada + buffer study region
+	# surveys <- surveys[!(surveys$origRecencyOfSighting %in% 'years to decades (old pellets only)'), ]
 
 	# save(surveys, file='./Data/Occurrences/Training Surveys 01 Pika - Selected Detections and Non-Detections from Data Providers in Study Region.rda')
 
@@ -675,89 +674,26 @@
 	
 	# coords <- crds(presSpEa)
 	# presSpEa <- presSpEa[coords[ , 'y'] <= extent[['ymax']] & coords[ , 'y'] >= extent[['ymin']], ]
+	# coords <- crds(presSpEa)
 
 	# ### KDE
 	# # # Gaussian bandwidth
 	# # bw <- 0.5 * sum(apply(crds(presSpEa), 2, sd)) * nrow(presSpEa)^(-1/6)
 	
 	# # Epanechnikov bandwidth
-	# bw <- 1.77 * 0.5 * sum(apply(crds(presSpEa), 2, sd, na.rm=T)) * nrow(presSp)^(-1/6)
+	# # bw <- 1.77 * 0.5 * sum(apply(crds(presSpEa), 2, sd, na.rm=T)) * nrow(presSp)^(-1/6)
+	# # bw <- 1.77 * 0.5 * sum(apply(coords, 2, sd, na.rm=T)) * nrow(coords)^(-1/6)
 	
-	# kde <- spatialEco::sp.kde(st_as_sf(presSpEa), bw=bw, ref=mask, standardize=TRUE)
+	# kde <- ks::kde(coords)
+	
+	# longLat <- longLatRasts(mask)
+	# names(longLat) <- c('x', 'y')
+	# longLat <- as.data.frame(longLat, cells = TRUE)
+	# kde <- predict(kde, x = longLat[ , c('x', 'y')])
+
+	# kde <- enmSdmX::setValueByCell(mask, val = kde, cell = longLat$cell)
+	
 	# writeRaster(kde, './KDE/kde.tif', overwrite = TRUE)
-	
-say('########################')
-say('### measure gap area ###')
-say('########################')
-
-	# Measurig "gap" area using area of triangles of Delauney triangulation
-	
-	### area of gap prior to sampling (model training occurrenecs)
-	##############################################################
-	load('./Study Region/GADM GAP Counties.rda')
-	
-	load('./Data/Occurrences/Training Surveys 03 Pika - Extracted Environmental Values with PCA.rda')
-	trainPres <- vect(trainPres, geom = c('longWgs84', 'latWgs84'), crs = prismCrs)
-	
-	del <- delaunay(trainPres)
-	
-	plot(gapCounties, border = 'red')
-	plot(trainPres, add = TRUE)
-	plot(del, add = TRUE)
-	delArea_km2 <- expanse(del) / 1000^2
-	
-	# manually select triangles
-	pts <- click(n = 6)
-
-	gapDel <- extract(del, pts)
-	del$area_km2 <- delArea_km2
-	
-	gapArea_km2 <- sum(del$area_km2[gapDel[ , 'id.x']])
-	sierraNevadaOccsMcp_km2 <- sum(del$area_km2)
-	
-	### area of "recently-occupied" gap (area of "recent occupied" area predicted by model within gap Delauney triangles)
-	#####################################################################################################################
-	
-	### ENM predictions in the "yellow" zone
-	pred <- rast('./ENMs/predictionEnsemble.tif')
-	pred <- pred / 1000
-	predVals <- extract(pred, testSurveys, ID = FALSE)
-	predVals <- unlist(predVals)
-	
-	predPres <- predVals[testSurveys$status == '2 detected']
-	predShortTerm <- predVals[testSurveys$status == '1 recent absence']
-	predLongTerm <- predVals[testSurveys$status == '0 long absence']
-
-	tholdPres_vs_shortTermAbs <- enmSdmX::evalThreshold(predPres, predShortTerm)[['mdss']]
-	tholdPres_vs_longTermAbs <- enmSdmX::evalThreshold(predPres, predLongTerm)[['mdss']]
-	tholdShortTerm_vs_longTermAbs <- enmSdmX::evalThreshold(predShortTerm, predLongTerm)[['mdss']]
-	
-	predRecentOcc <- pred > tholdShortTerm_vs_longTermAbs & pred < tholdPres_vs_shortTermAbs
-		
-	gapDel <- del[gapDel[ , 'id.x'], ]
-	
-	cellAreas_km2 <- cellSize(pred) / 1000^2
-	cellAreas_km2 <- predRecentOcc * cellAreas_km2
-	
-	plot(cellAreas_km2)
-	plot(gapDel, add = TRUE)
-
-	recentAbsAreaInGap_km2 <- extract(cellAreas_km2, gapDel, ID = FALSE, weight = TRUE)
-	recentAbsAreaInGap_km2 <- sum(apply(recentAbsAreaInGap_km2, 1, prod))
-
-	sink('./Figures & Tables/Area of Gap.txt', split = TRUE)
-		say(date())
-		say('')
-		say('Area of pika gap estimated from previously-known occurrences using Delauney triangles is ', round(gapArea_km2), ' km2.')
-		say('Area of all previously-known occurrences using MCP is ', round(sierraNevadaOccsMcp_km2), ' km2.')
-		say('')
-		say('Area that was recently suitable in the gap but is now unoccupied (area predicted to be "recent absence" class) is ', round(recentAbsAreaInGap_km2), ' km2.')
-		say('')
-		say('Current gap : Sierra Nevada total: ', round(gapArea_km2 / sierraNevadaOccsMcp_km2, 5))
-		say('Suitable area lost / gap area: ', round(recentAbsAreaInGap_km2 / gapArea_km2, 5))
-		say('Gap was until recently ', round(100 * (gapArea_km2 - gapArea_km2 / (1 + recentAbsAreaInGap_km2 / gapArea_km2)) / gapArea_km2, 1), '% smaller.')
-		
-	sink()
 	
 # say('###########################################')
 # say('### map of gap sampling in focal region ###')
@@ -778,8 +714,8 @@ say('########################')
 	# west1 <- sp::spTransform(west1, getCRS('climateNA', TRUE))
 	# west2 <- sp::spTransform(west2, getCRS('climateNA', TRUE))
 
-	# nam1 <- readRDS('C:/Ecology/Drive/Research Data/GADM/version_4.1/North America Level 1 sans Great Lakes SpatVector Albers.rds')
-	# nam2 <- readRDS('C:/Ecology/Drive/Research Data/GADM/version_4.1/North America Level 2 sans Great Lakes SpatVector Albers.rds')
+	# nam1 <- vect('C:/Ecology/Drive/Research Data/GADM/Version 4.1/High Res North America Level 1 sans Great Lakes SpatVector Albers.gpkg')
+	# nam2 <- vect('C:/Ecology/Drive/Research Data/GADM/Version 4.1/High Res North America Level 2 sans Great Lakes SpatVector Albers.gpkg')
 	# nam1 <- nam1[nam1$NAME_1 %in% c('California', 'Arizona', 'New Mexico', 'Utah', 'Oregon', 'Washington', 'Baja California', 'Baja California Sur', 'Idaho', 'Nevada', 'British Columbia', 'Sonora', 'Chihuahua', 'Montana', 'Sinola'), ]
 	# nam2 <- nam2[nam2$NAME_1 %in% c('California'), ]
 
@@ -879,8 +815,8 @@ say('########################')
 		# pchs[testSurveysSpEa$status == '1 recent absence'] <- testShortTermPch
 		# pchs[testSurveysSpEa$status == '2 detected'] <- testPresPch
 		
-		# points(trainPresSpEa, pch=trainPresPch, cex=0.5, col=trainPresCol)
 		# points(testSurveysSpEa, pch=pchs, col=cols, cex=0.6)
+		# points(trainPresSpEa, pch=trainPresPch, cex=0.5, col=trainPresCol)
 		# box()
 		
 		# # legend
@@ -935,94 +871,94 @@ say('########################')
 	# dev.off()
 
 						
-	# # plot
-	# png('./Figures & Tables/Gap Sampling Plumas Emphasized with No Survey Sites.png', width=1200, height=1200, res=300)
+	# # # # plot
+	# # # png('./Figures & Tables/Gap Sampling Plumas Emphasized with No Survey Sites.png', width=1200, height=1200, res=300)
 		
-		# par(mar=c(2, 1, 1, 1), cex.axis=0.4, mgp=c(3, 0, 0.2))
+		# # # par(mar=c(2, 1, 1, 1), cex.axis=0.4, mgp=c(3, 0, 0.2))
 		
-		# plot(focus, border='white')
+		# # # plot(focus, border='white')
 		
-		# usr <- par('usr')
-		# xs <- pretty(c(usr[1], usr[2]))
-		# ys <- pretty(c(usr[3], usr[4]))
-		# axis(1, at=xs, tck=0.01, labels=xs, col=NA, col.ticks='black')
-		# axis(2, at=ys, tck=0.01, labels=ys, col=NA, col.ticks='black')
+		# # # usr <- par('usr')
+		# # # xs <- pretty(c(usr[1], usr[2]))
+		# # # ys <- pretty(c(usr[3], usr[4]))
+		# # # axis(1, at=xs, tck=0.01, labels=xs, col=NA, col.ticks='black')
+		# # # axis(2, at=ys, tck=0.01, labels=ys, col=NA, col.ticks='black')
 		
-		# plot(hs, col=grays, legend=FALSE, add=TRUE)
-		# plot(lakes, col = 'gray60', border = NA, add = TRUE)
-		# plot(kdeClass, col=kdeCols, legend=FALSE, add=TRUE)
-		# plot(west2, border='gray40', add=TRUE)
-		# plot(west1, border='gray40', lwd=2, add=TRUE)
-		# plot(west2[west2$NAME_2 == 'Plumas', ], border='gray40', lwd=3, add=TRUE)
+		# # # plot(hs, col=grays, legend=FALSE, add=TRUE)
+		# # # plot(lakes, col = 'gray60', border = NA, add = TRUE)
+		# # # plot(kdeClass, col=kdeCols, legend=FALSE, add=TRUE)
+		# # # plot(west2, border='gray40', add=TRUE)
+		# # # plot(west1, border='gray40', lwd=2, add=TRUE)
+		# # # plot(west2[west2$NAME_2 == 'Plumas', ], border='gray40', lwd=3, add=TRUE)
 
-		# testSurveysSpEa <- testSurveysSpEa[order(testSurveysSpEa$status), ]
+		# # # testSurveysSpEa <- testSurveysSpEa[order(testSurveysSpEa$status), ]
 		
-		# # cols <- rep(NA, nrow(testSurveys))
-		# # cols[testSurveysSpEa$status == '0 long absence'] <- testLongTermAbsCol
-		# # cols[testSurveysSpEa$status == '1 recent absence'] <- testShortTermAbsCol
-		# # cols[testSurveysSpEa$status == '2 detected'] <- testPresCol
+		# # # # cols <- rep(NA, nrow(testSurveys))
+		# # # # cols[testSurveysSpEa$status == '0 long absence'] <- testLongTermAbsCol
+		# # # # cols[testSurveysSpEa$status == '1 recent absence'] <- testShortTermAbsCol
+		# # # # cols[testSurveysSpEa$status == '2 detected'] <- testPresCol
 		
-		# # pchs <- rep(NA, nrow(testSurveys))
-		# # pchs[testSurveysSpEa$status == '0 long absence'] <- testLongTermPch
-		# # pchs[testSurveysSpEa$status == '1 recent absence'] <- testShortTermPch
-		# # pchs[testSurveysSpEa$status == '2 detected'] <- testPresPch
+		# # # # pchs <- rep(NA, nrow(testSurveys))
+		# # # # pchs[testSurveysSpEa$status == '0 long absence'] <- testLongTermPch
+		# # # # pchs[testSurveysSpEa$status == '1 recent absence'] <- testShortTermPch
+		# # # # pchs[testSurveysSpEa$status == '2 detected'] <- testPresPch
 		
-		# points(trainPresSpEa, pch=trainPresPch, cex=0.5, col=trainPresCol)
-		# # points(testSurveysSpEa, pch=pchs, col=cols, cex=0.6)
-		# box()
+		# # # points(trainPresSpEa, pch=trainPresPch, cex=0.5, col=trainPresCol)
+		# # # # points(testSurveysSpEa, pch=pchs, col=cols, cex=0.6)
+		# # # box()
 		
-		# # legend
-		# legendBreaks(
-			# 'bottomleft',
-			# inset=0.01,
-			# height=0.44,
-			# width=0.27,
-			# title='Training occurrence\ndensity',
-			# titleAdj=c(0.5, 0.92),
-			# col=kdeCols,
-			# adjX=c(0.05, 0.225),
-			# adjY=c(0.38, 0.85),
-			# labels=c('\U2265min presence', paste0('\U2265', '5th percentile'), paste0('\U2265', '10th percentile')),
-			# labAdjX=0.52,
-			# cex=0.42,
-			# boxBg=alpha('white', 0.8)
-		# )
+		# # # # legend
+		# # # legendBreaks(
+			# # # 'bottomleft',
+			# # # inset=0.01,
+			# # # height=0.44,
+			# # # width=0.27,
+			# # # title='Training occurrence\ndensity',
+			# # # titleAdj=c(0.5, 0.92),
+			# # # col=kdeCols,
+			# # # adjX=c(0.05, 0.225),
+			# # # adjY=c(0.38, 0.85),
+			# # # labels=c('\U2265min presence', paste0('\U2265', '5th percentile'), paste0('\U2265', '10th percentile')),
+			# # # labAdjX=0.52,
+			# # # cex=0.42,
+			# # # boxBg=alpha('white', 0.8)
+		# # # )
 		
-		# usr <- par('usr')
-		# width <- usr[2] - usr[1]
-		# height <- usr[4] - usr[3]
-		# x <- usr[1] + 0.01 * width
-		# y <- usr[3] + 0.17 * height
+		# # # usr <- par('usr')
+		# # # width <- usr[2] - usr[1]
+		# # # height <- usr[4] - usr[3]
+		# # # x <- usr[1] + 0.01 * width
+		# # # y <- usr[3] + 0.17 * height
 		
-		# legend(
-			# x,
-			# y,
-			# legend=c('Training presence', 'Long-term test absence', 'Recent test absence', 'Test presence'),
-			# pch=c(trainPresPch, testLongTermPch, testShortTermPch, testPresPch),
-			# col=c(trainPresCol, testLongTermAbsCol, testShortTermAbsCol, testPresCol),
-			# bty='n',
-			# title='Surveys',
-			# cex=0.45,
-			# pt.cex=0.7
-		# )
+		# # # legend(
+			# # # x,
+			# # # y,
+			# # # legend=c('Training presence', 'Long-term test absence', 'Recent test absence', 'Test presence'),
+			# # # pch=c(trainPresPch, testLongTermPch, testShortTermPch, testPresPch),
+			# # # col=c(trainPresCol, testLongTermAbsCol, testShortTermAbsCol, testPresCol),
+			# # # bty='n',
+			# # # title='Surveys',
+			# # # cex=0.45,
+			# # # pt.cex=0.7
+		# # # )
 		
-		# # scale bar
-		# size <- 50000 # length of scale bar in meters
-		# x <- usr[2] - size - 0.02 * width
-		# x <- c(x, x + size)
-		# y <- usr[3] + rep(0.02 * height, 2)
+		# # # # scale bar
+		# # # size <- 50000 # length of scale bar in meters
+		# # # x <- usr[2] - size - 0.02 * width
+		# # # x <- c(x, x + size)
+		# # # y <- usr[3] + rep(0.02 * height, 2)
 		
-		# lines(x, y, lwd=4, xpd=NA, col='black', lend=1)
+		# # # lines(x, y, lwd=4, xpd=NA, col='black', lend=1)
 		
-		# x <- mean(x)
-		# y <- usr[3] + 0.05 * height
-		# text(x, y[1], labels=paste(size / 1000, 'km'), cex=0.5)
+		# # # x <- mean(x)
+		# # # y <- usr[3] + 0.05 * height
+		# # # text(x, y[1], labels=paste(size / 1000, 'km'), cex=0.5)
 
-		# title(sub=date(), cex.sub=0.3, outer=TRUE, line=-1)
+		# # # title(sub=date(), cex.sub=0.3, outer=TRUE, line=-1)
 		
-	# dev.off()
+	# # # dev.off()
 	
-	# iucn <- vect(paste0(drive, '/Ecology/Drive/Research Data/IUCN Range Maps/Data/MAMMALS_TERRESTRIAL_ONLY.shp'))
+	# iucn <- vect(paste0(drive, '/Ecology/Drive/Research Data/IUCN Range Maps/Mammals 2022-05-23/MAMMALS_TERRESTRIAL_ONLY.shp'))
 	# iucn <- iucn[iucn$binomial == 'Ochotona princeps', ]
 	# iucn <- project(iucn, nam1)
 
@@ -1291,7 +1227,7 @@ say('########################')
 		# title(sub=date(), cex.sub=0.3, outer=TRUE, line=-1)
 		
 	# dev.off()
-						
+
 # say('############################################################')
 # say('### map of gap sampling across Sierras sans survey plots ###')
 # say('############################################################')
@@ -1404,7 +1340,7 @@ say('########################')
 		# title(sub=date(), cex.sub=0.3, outer=TRUE, line=-1)
 		
 	# dev.off()
-						
+
 # say('#########################################################################')
 # say('### assign weights to TRAINING sites based on spatial autocorrelation ###')
 # say('#########################################################################')
@@ -1516,7 +1452,8 @@ say('########################')
 	# say('I want to use inverse-p weighting applied to survey testSites to correct for spatial sampling bias. I will assume that two survey testSites at the exact same location each have a weight of 1/2, three each have a weight of 1/3, and so on. At the other end of the spectrum survey testSites that are far enough away should each have a weight of 1. I will define "far enough away" as the distance at which the proportion of pairwise observed distances falls below the upper 95th quantile of the distribution of pairwise distances from randomly located testSites (one-tail). I will draw a number of randomly located testSites in each iteration so it is equal to the total number of survey testSites.', breaks=80)
 
 	# ### test occurrences
-	# testSites <- read.csv('./Data/Occurrences/Test Surveys 02 Cleaned.csv')
+	# testSites <- fread('./Data/Occurrences/Test Surveys 02 Cleaned.csv')
+	# testSites <- as.data.frame(testSites)
 	# testSitesSp <- SpatialPoints(testSites[ , ll], getCRS('wgs84', TRUE))
 
 	# ### mask
@@ -1694,7 +1631,8 @@ say('########################')
 	# load('./Study Region/GADM California, Nevada, Oregon Counties.rda')
 	
 	# # test occurrences
-	# sites <- read.csv('./Data/Occurrences/Test Surveys 03 Assigned Weights Based on Pairwise Spatial Autocorrelation.csv')
+	# sites <- fread('./Data/Occurrences/Test Surveys 03 Assigned Weights Based on Pairwise Spatial Autocorrelation.csv')
+	# sites <- as.data.frame(sites)
 	# sacDist <- read.csv('./Figures & Tables/Spatial Autocorrelation between Survey Sites/!Characteristic Clustering Distance for Test vs Test and Test vs Training Sites.csv')
 	
 	# sitesSp <- SpatialPointsDataFrame(sites[ , ll], data=sites, proj4=CRS(prismCrs))
@@ -1857,7 +1795,8 @@ say('########################')
 	# load('./ENMs/Background Sites/PCA on Random Background Sites from across Study Region Mask.rda')
 
 	# load('./Data/Occurrences/Training Surveys 02 Pika - Assigned Weights Based on Pairwise Distance Distribution.rda')
-	# testSurveys <- read.csv('./Data/Occurrences/Test Surveys 03 Assigned Weights Based on Pairwise Spatial Autocorrelation.csv')
+	# testSurveys <- fread('./Data/Occurrences/Test Surveys 03 Assigned Weights Based on Pairwise Spatial Autocorrelation.csv')
+	# testSurveys <- as.data.frame(testSurveys)
 	
 	# env <- stackEnv()
 	
@@ -2057,8 +1996,8 @@ say('########################')
 	# predStack <- round(predStack)
 	# names(predStack) <- algos
 	
-	# writeRaster(pred, './ENMs/predictionEnsemble', datatype='INT2U')
-	# writeRaster(predStack, './ENMs/predictionByAlgorithm', datatype='INT2U')
+	# writeRaster(pred, './ENMs/predictionEnsemble', datatype='INT2U', overwrite=TRUE)
+	# writeRaster(predStack, './ENMs/predictionByAlgorithm', datatype='INT2U', overwrite=TRUE)
 
 # say('################################################')
 # say('### extract predictions to TEST survey sites ###')
@@ -2068,7 +2007,8 @@ say('########################')
 	# algosPred <- stack('./ENMs/predictionByAlgorithm.tif')
 	# names(algosPred) <- algos
 	
-	# testSurveys <- read.csv('./Data/Occurrences/Test Surveys 04 Extracted Environmental Values with PCA.csv')
+	# testSurveys <- fread('./Data/Occurrences/Test Surveys 04 Extracted Environmental Values with PCA.csv')
+	# testSurveys <- as.data.frame(testSurveys)
 	
 	# predictEnsemble <- extract(ensPred, testSurveys[ , ll]) / 1000
 	# predictAlgos <- extract(algosPred, testSurveys[ , ll]) / 1000
@@ -2083,7 +2023,8 @@ say('########################')
 # say('### calculate performance statistics against TEST survey sites ###')
 # say('##################################################################')	
 
-	# testSurveys <- read.csv('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
+	# testSurveys <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
+	# testSurveys <- as.data.frame(testSurveys)
 	# testSurveys$weight <- pmin(testSurveys$weightTestVsTest, testSurveys$weightTestVsTrain)
 	# longTermAbs <- testSurveys[testSurveys$status=='0 long absence', c('predictEnsemble', 'weight')]
 	# recentAbs <- testSurveys[testSurveys$status=='1 recent absence' , c('predictEnsemble', 'weight')]
@@ -2114,7 +2055,8 @@ say('########################')
 # say('### boxplot of distribution of predictions at TEST sites ###')
 # say('############################################################')
 
-	# testSurveys <- read.csv('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
+	# testSurveys <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
+	# testSurveys <- as.data.frame(testSurveys)
 	
 	# testSurveys$weight <- pmin(testSurveys$weightTestVsTest, testSurveys$weightTestVsTrain)
 	
@@ -2200,7 +2142,8 @@ say('########################')
 
 	# load('./ENMs/Background Sites/Random Background Sites from across Study Region Mask.rda')
 	# load('./Data/Occurrences/Training Surveys 03 Pika - Extracted Environmental Values with PCA.rda')
-	# testSurveys <- read.csv('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
+	# testSurveys <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
+	# testSurveys <- as.data.frame(testSurveys)
 	
 	# for (pc in pcs) {
 		
@@ -2248,8 +2191,8 @@ say('########################')
 	# # generalize
 	# focusBuff <- 25 # buffer size around test sites for generating focus of plot (in km)
 
-	# usa <- raster::getData('GADM', country='USA', level=1, path='C:/ecology/!Scratch')
-	# mex <- raster::getData('GADM', country='MEX', level=1, path='C:/ecology/!Scratch')
+	# usa <- raster::getData('GADM', country='USA', level=1, path='C:/!Scratch')
+	# mex <- raster::getData('GADM', country='MEX', level=1, path='C:/!Scratch')
 	# nam <- rbind(usa, mex)
 	# nam <- sp::spTransform(nam, getCRS('climateNA', TRUE))
 
@@ -2272,7 +2215,8 @@ say('########################')
 	# trainPresSpEa <- sp::spTransform(trainPresSp, getCRS('climateNA', TRUE))
 
 	# ### test occurrences
-	# testSurveys <- read.csv('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
+	# testSurveys <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
+	# testSurveys <- as.data.frame(testSurveys)
 	# testSurveysSp <- SpatialPointsDataFrame(testSurveys[ , ll], data=testSurveys, proj4=getCRS('nad83', TRUE))
 	# testSurveysSpEa <- sp::spTransform(testSurveysSp, getCRS('climateNA', TRUE))
 	
@@ -2557,7 +2501,8 @@ say('########################')
 # say('#######################################')
 
 	# ### test occurrences
-	# testSurveys <- read.csv('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
+	# testSurveys <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
+	# testSurveys <- as.data.frame(testSurveys)
 	# testSurveysSp <- SpatialPointsDataFrame(testSurveys[ , ll], data=testSurveys, proj4=getCRS('nad83', TRUE))
 	# testSurveysSpEa <- sp::spTransform(testSurveysSp, getCRS('climateNA', TRUE))
 	
@@ -2635,39 +2580,40 @@ say('########################')
 		# say(date())
 	# sink()
 
-# say('###############################################')
-# say('### make KML of test sites with predictions ###')
-# say('###############################################')
+# # # say('###############################################')
+# # # say('### make KML of test sites with predictions ###')
+# # # say('###############################################')
 	
-	# tests <- read.csv('./Data/Occurrences/Test Surveys 02 Cleaned.csv')
+	# # # tests <- fread('./Data/Occurrences/Test Surveys 02 Cleaned.csv')
+	# # # tests <- as.data.frame(tests)
 
-	# tests <- SpatialPointsDataFrame(tests[ , c('longWgs84', 'latWgs84')], data=tests, proj4string=getCRS('wgs84', TRUE))
-	# pred <- raster('./ENMs/predictionEnsemble.tif')
+	# # # tests <- SpatialPointsDataFrame(tests[ , c('longWgs84', 'latWgs84')], data=tests, proj4string=getCRS('wgs84', TRUE))
+	# # # pred <- raster('./ENMs/predictionEnsemble.tif')
 	
-	# tests$prediction <- extract(pred, tests) / 1000
+	# # # tests$prediction <- extract(pred, tests) / 1000
 	
-	# tests$predictedStatus <- NA
-	# tests$predictedStatus[tests$prediction < 0.59] <- '0 long absence'
-	# tests$predictedStatus[tests$prediction >= 0.59 & tests$prediction < 0.74] <- '1 recent absence'
-	# tests$predictedStatus[tests$prediction >= 0.74] <- '2 detection'
+	# # # tests$predictedStatus <- NA
+	# # # tests$predictedStatus[tests$prediction < 0.59] <- '0 long absence'
+	# # # tests$predictedStatus[tests$prediction >= 0.59 & tests$prediction < 0.74] <- '1 recent absence'
+	# # # tests$predictedStatus[tests$prediction >= 0.74] <- '2 detection'
 
-	# classFx <- function(x) {
-		# if (is.na(x)) {
-			# NA
-		# } else if (x < 0.59) {
-			# 0
-		# } else if (x >= 0.59 & x < 0.74) {
-			# 1
-		# } else if (x >= 0.74) {
-			# 2
-		# }
-	# }
+	# # # classFx <- function(x) {
+		# # # if (is.na(x)) {
+			# # # NA
+		# # # } else if (x < 0.59) {
+			# # # 0
+		# # # } else if (x >= 0.59 & x < 0.74) {
+			# # # 1
+		# # # } else if (x >= 0.74) {
+			# # # 2
+		# # # }
+	# # # }
 	
-	# tholdPred <- calc(pred / 1000, classFx)
+	# # # tholdPred <- calc(pred / 1000, classFx)
 	
-	# KML(tests, './Figures & Tables/California Gap Test Sites', overwrite=TRUE)
-	# KML(pred, './Figures & Tables/California Gap Model Predictions', mappixel=10 * 100000, overwrite=TRUE)
-	# KML(tholdPred, './Figures & Tables/California Gap Model Predictions Thresholded', mappixel=100 * 100000, overwrite=TRUE)
+	# # # KML(tests, './Figures & Tables/California Gap Test Sites', overwrite=TRUE)
+	# # # KML(pred, './Figures & Tables/California Gap Model Predictions', mappixel=10 * 100000, overwrite=TRUE)
+	# # # KML(tholdPred, './Figures & Tables/California Gap Model Predictions Thresholded', mappixel=100 * 100000, overwrite=TRUE)
 	
 # say('############################################')
 # say('### calculate climate means for gap area ###')
@@ -2692,62 +2638,285 @@ say('########################')
 	# mins <- colMeans(mins)
 	# swe <- colMeans(swe)
 
-say('##################################################################')
-say('### graph of elevation of calibration and survey sites by type ###')
-say('##################################################################')
+# say('##################################################################')
+# say('### graph of elevation of calibration and survey sites by type ###')
+# say('##################################################################')
 
-	# Make a violin plot of occurrences/test sites where y-axis is elevation and x is category (train, test no evidence, test recent evidence, test occupied)
+	# # Make a violin plot of occurrences/test sites where y-axis is elevation and x is category (train, test no evidence, test recent evidence, test occupied)
 
-	# prismElev <- rast('./Data/Topography - SRTM/elevation_srtm_m.tif')
-	prismElev <- rast('E:/Ecology/Drive/Research Data/PRISM/PRISM_us_dem_800m.tif')
+	# # prismElev <- rast('./Data/Topography - SRTM/elevation_srtm_m.tif')
+	# prismElev <- rast('C:/Ecology/Drive/Research Data/PRISM/PRISM_us_dem_800m.tif')
 
-	# records
-	load('./Data/Occurrences/Training Surveys 03 Pika - Extracted Environmental Values with PCA.rda')
-	test <- fread('./Data/Occurrences/Test Surveys 04 Extracted Environmental Values with PCA.csv')
+	# # records
+	# load('./Data/Occurrences/Training Surveys 03 Pika - Extracted Environmental Values with PCA.rda')
+	# test <- fread('./Data/Occurrences/Test Surveys 04 Extracted Environmental Values with PCA.csv')
 
-	# convert to spatial
-	test <- vect(test, geom = c('longWgs84', 'latWgs84'), crs = getCRS('wgs84'))
-	trainPres <- vect(trainPres, geom = c('longWgs84', 'latWgs84'), crs = getCRS('wgs84'))
+	# # convert to spatial
+	# test <- vect(test, geom = c('longWgs84', 'latWgs84'), crs = getCRS('wgs84'))
+	# trainPres <- vect(trainPres, geom = c('longWgs84', 'latWgs84'), crs = getCRS('wgs84'))
 
-	# remove training presences far from test presenecs (to accomodate latitudinal shift in minimum pika elevation)
-	buff <- buffer(test, 100 * 1000)
-	extent <- ext(buff)
-	extent <- vect(extent, crs = getCRS('wgs84'))
+	# # remove training presences far from test presenecs (to accomodate latitudinal shift in minimum pika elevation)
+	# buff <- buffer(test, 100 * 1000)
+	# extent <- ext(buff)
+	# extent <- vect(extent, crs = getCRS('wgs84'))
 
-	inBox <- extract(extent, trainPres)
-	trainPres <- trainPres[!is.na(inBox[ , 'id.x']), ]
+	# inBox <- extract(extent, trainPres)
+	# trainPres <- trainPres[!is.na(inBox[ , 'id.x']), ]
 
-	testElev <- extract(prismElev, test, ID = FALSE)
-	trainElev <- extract(prismElev, trainPres, ID = FALSE)
+	# testElev <- extract(prismElev, test, ID = FALSE)
+	# trainElev <- extract(prismElev, trainPres, ID = FALSE)
 
-	testElev$status <- test$status
-	testElev$status[testElev$status == '0 long absence'] <- 'Long-term test absence'
-	testElev$status[testElev$status == '1 recent absence'] <- 'Recent test absence'
-	testElev$status[testElev$status == '2 detected'] <- 'Test presence'
+	# testElev$status <- test$status
+	# testElev$status[testElev$status == '0 long absence'] <- 'Long-term test absence'
+	# testElev$status[testElev$status == '1 recent absence'] <- 'Recent test absence'
+	# testElev$status[testElev$status == '2 detected'] <- 'Test presence'
 
-	trainElev$status <- 'Previously-known presence'
+	# trainElev$status <- 'Previously-known presence'
 
-	elevs <- rbind(trainElev, testElev)
+	# elevs <- rbind(trainElev, testElev)
 	
-	elevs$status <- factor(elevs$status, levels = c('Previously-known presence', 'Long-term test absence', 'Recent test absence', 'Test presence'), ordered = TRUE)
+	# elevs$status <- factor(elevs$status, levels = c('Previously-known presence', 'Long-term test absence', 'Recent test absence', 'Test presence'), ordered = TRUE)
 	
-	graph <- ggplot(elevs, aes(x = status, y = PRISM_us_dem_800m, fill = status)) +
+	# graph <- ggplot(elevs, aes(x = status, y = PRISM_us_dem_800m, fill = status)) +
 	
-		geom_violin() +
-		scale_x_discrete(
-			labels = c('Previously-known presence' = 'Previously-known\npresence','Long-term test absence' = 'Long-term\ntest absence', 'Recent test absence' = 'Recent\ntest absence', 'Test presence' = 'Test\npresence')
-		) +
-		scale_fill_manual(
-			values = c('Previously-known presence' = 'black','Long-term test absence' = 'darkred', 'Recent test absence' = 'yellow', 'Test presence' = 'darkgreen')
-		) + 
-		xlab('') + ylab('Elevation (m)') +
-		theme(
-			legend.position = 'none',
-			axis.text = element_text(size = 18),
-			axis.title = element_text(size = 22)
-		)
+		# geom_violin() +
+		# scale_x_discrete(
+			# labels = c('Previously-known presence' = 'Previously-known\npresence','Long-term test absence' = 'Long-term\ntest absence', 'Recent test absence' = 'Recent\ntest absence', 'Test presence' = 'Test\npresence')
+		# ) +
+		# scale_fill_manual(
+			# values = c('Previously-known presence' = 'black','Long-term test absence' = 'darkred', 'Recent test absence' = 'yellow', 'Test presence' = 'darkgreen')
+		# ) + 
+		# xlab('') + ylab('Elevation (m)') +
+		# theme(
+			# legend.position = 'none',
+			# axis.text = element_text(size = 18),
+			# axis.title = element_text(size = 22)
+		# )
 	
-	ggsave(graph, file = './Figures & Tables/Elevation by Sites.png', dpi = 600, width = 8, height = 8)
+	# ggsave(graph, file = './Figures & Tables/Elevation by Sites.png', dpi = 600, width = 8, height = 8)
 
+say('###################################')
+say('### ancillary analyses of sites ###')
+say('###################################')
+
+	### inter-point distances between survey occurrences in the extreme NW corner of survey sites
+	#############################################################################################
+
+	sink('./Figures & Tables/Ancillary Analysis - Distances between Clusters of Test Detections.txt', split = TRUE)
+	say(date())
+
+	# northwestern test presences
+	testSurveys <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
+	testPres <- testSurveys[status == '2 detected' & latWgs84 > 40]
+	testPres <- vect(testPres, geom = ll, crs = prismCrs)
+	
+	dists <- distance(testPres)
+	
+	say('Number of survey detections in northwest part of gap: ', nrow(testPres), pre = 2)
+	say('Pairwise distance(s) between them in meters:')
+	print(round(dists))
+
+	# center/north of southern edge of gap test presences
+	testSurveys <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
+	testPres <- testSurveys[status == '2 detected' & latWgs84 > 39.6 & latWgs84 < 39.8]
+	testPres <- vect(testPres, geom = ll, crs = prismCrs)
+	
+	dists <- distance(testPres)
+	
+	say('Number of survey detections in northern part of southern gap edge region: ', nrow(testPres), pre = 2)
+	say('Pairwise distance(s) between them in meters:')
+	print(round(dists))
+
+	# southeastern-most test presences
+	testSurveys <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
+	testPres <- testSurveys[status == '2 detected' & latWgs84 < 39.6]
+	testPres <- vect(testPres, geom = ll, crs = prismCrs)
+	
+	dists <- distance(testPres)
+	
+	say('Number of survey detections in southeastern-most part of gap: ', nrow(testPres), pre = 2)
+	say('Pairwise distance(s) between them in meters:')
+	print(round(dists))
+
+	sink()
+
+	# # # ### shortest distance between training occurrences and recent test sites in almost southeastern-most locale
+	# # # ###########################################################################################################
+	
+	# # # load('./Data/Occurrences/Training Surveys 03 Pika - Extracted Environmental Values with PCA.rda')
+	# # # trainPres <- vect(trainPres, geom = ll, crs = prismCrs)
+	
+	# # # testSurveys <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
+	# # # testRecentAbs <- testSurveys[status == '1 recent absence' & latWgs84 > 39.55 & latWgs84 < 39.62 & longWgs84 > -120.2]
+	# # # testRecentAbs <- vect(testRecentAbs, geom = ll, crs = prismCrs)
+
+	# # # plot(testRecentAbs)
+	# # # plot(trainPres, pch = 1, col = 'red', add = TRUE)
+		
+	# # # dists_m <- distance(testRecentAbs, trainPres)
+	# # # nearestDist_m <- apply(dists_m, 2, min)
+	# # # nearby <- which(nearestDist_m <= 3000)
+	
+	# # # trainPresNearby <- trainPres[nearby]
+	# # # dists_m <- distance(testRecentAbs, trainPresNearby)
+	
+	# # # sink('./Figures & Tables/Ancillary Analysis - Distances between Southwestern-most Recent Absences and Training Presences.txt', split = TRUE)
+	# # # say(date(), post = 2)
+	# # # say('Number of recent absences: ', nrow(testRecentAbs))
+	# # # say('Number of nearby previously-known presences within 3000 m: ', nrow(trainPresNearby), post = 2)
+	
+	# # # say('Distance(s) between southwestern-most recent absence(s) and training occurrence(s) (in meters):', post = 2)
+	# # # print(round(dists_m))
+	# # # say('')
+	# # # say('Training occurrence closest to this recent absence site:')
+	# # # print(as.data.frame(trainPres[nearby]))
+	
+	# # # sink()
+	
+	# ### analysis of pellet elevations
+	# #################################
+	
+	# buried <- c(7822, 7500, 7259, 7008, 6978, 6870, 6229, 7546)
+	# nonburied <- c(9400, 8255, 7556, 7449, 7297, 7192, 7008, 6535, 6705, 7418, 7546)
+
+	# pellets <- data.frame(elev_m = c(buried, nonburied), status = c(rep('buried', length(buried)), rep('non-buried', length(nonburied))))
+	# boxplot(elev_m ~ status, data = pellets)
+
+	# ### straight-line distance between only presences found in gap and nearest southern presence and nearest northern presence
+	# ##########################################################################################################################
+
+	# load('./Data/Occurrences/Training Surveys 03 Pika - Extracted Environmental Values with PCA.rda')
+	# trainPres <- vect(trainPres, geom = ll, crs = getCRS('WGS84'))
+
+	# load('./Study Region/GADM GAP Counties.rda')
+	# gapCounties <- vect(gapCounties)
+	# crs(gapCounties) <- getCRS('WGS84')
+
+	# testSurveys <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
+	# testPres <- testSurveys[status == '2 detected']
+	# testPres <- vect(testPres, geom = ll, crs = getCRS('WGS84'))
+
+	# plot(gapCounties)
+	# plot(trainPres, pch = 16, cex = 0.6, col = 'red', add = TRUE)
+	# plot(testPres, pch = 1, cex = 0.8, , col = 'blue', add = TRUE)
+
+	# pts <- click(n = 3)
+	# pts <- vect(pts, crs = getCRS('WGS84'))
+	# dists_m <- distance(pts)
+	
+# say('########################')
+# say('### measure gap area ###')
+# say('########################')
+
+	# # Measuring "gap" area using area of triangles of Delauney triangulation
+	
+	# sn <- vect('./Study Region/epa3_sierraNevadaSarrModified.shp')
+	# sn <- project(sn, prismCrs)
+
+	# ### area of gap prior to sampling (model training occurrences)
+	# ##############################################################
+	# load('./Study Region/GADM GAP Counties.rda')
+	
+	# load('./Data/Occurrences/Training Surveys 03 Pika - Extracted Environmental Values with PCA.rda')
+	# trainPres <- vect(trainPres, geom = c('longWgs84', 'latWgs84'), crs = prismCrs)
+	
+	# del <- delaunay(trainPres)
+	
+	# plot(gapCounties, border = 'red')
+	# plot(trainPres, add = TRUE)
+	# plot(del, add = TRUE)
+	# delArea_km2 <- expanse(del) / 1000^2
+	
+	# # manually select triangles from Delauney triangulation spanning gap
+	# # pts <- click(n = 4) # how I got the points below
+	# pts <- matrix(c(
+		# -120.4289, 40.37693,
+		# -120.9500, 40.33288,
+		# -121.2298, 40.22275,
+		# -121.2395, 40.36225
+	# ), ncol = 2, byrow = TRUE)
+
+	# gapDel <- extract(del, pts)
+	# gapDel <- as.data.frame(gapDel)
+	# gap <- del[gapDel$id.x, ]
+	# plot(sn)
+	# plot(gap, border=3, add=TRUE)
+	
+	# gap <- crds(gap)
+	
+	# # extend gap east and west
+	# gapTop <- gap[gap[ , 2] > 40, ]
+	# gapBottom <- gap[gap[ , 2] < 40, ]
+	
+	# extends <- matrix(c(
+		# min(gapTop[ , 1]) - 1, gapTop[which.min(gapTop[ , 1]), 2],
+		# max(gapTop[ , 1]) + 1, gapTop[which.max(gapTop[ , 1]), 2],
+		# min(gapBottom[ , 1]) - 2, gapBottom[which.min(gapBottom[ , 1]), 2],
+		# max(gapBottom[ , 1]) + 1, gapBottom[which.max(gapBottom[ , 1]), 2]
+	# ), ncol = 2, byrow = TRUE)
+	
+	# gap <- rbind(gap, extends)
+	
+	# gapTop <- gap[gap[ , 2] > 40, ]
+	# gapBottom <- gap[gap[ , 2] < 40, ]
+	# gapTop <- gapTop[order(gapTop[ , 1]), ]
+	# gapBottom <- gapBottom[order(gapBottom[ , 1], decreasing = TRUE), ]
+	
+	# gap <- rbind(gapTop, gapBottom)
+	# gap <- vect(gap, type = 'polygons', crs = prismCrs)
+	
+	# plot(sn)
+	# plot(gap, border=4, add=TRUE)
+
+	# gap <- intersect(sn, gap)
+	# gapArea_km2 <- expanse(gap) / 1000^2
+	# snArea_km2 <- expanse(sn) / 1000^2
+	
+	# ### area of "recently-occupied" gap (area of "recent occupied" area predicted by model within gap Delauney triangles)
+	# #####################################################################################################################
+	
+	# testSurveys <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
+	# testSurveys <- vect(testSurveys, geom = ll, crs = prismCrs)
+
+	# ### ENM predictions in the "yellow" zone
+	# pred <- rast('./ENMs/predictionEnsemble.tif')
+	# pred <- pred / 1000
+	# predVals <- extract(pred, testSurveys, ID = FALSE)
+	# predVals <- unlist(predVals)
+	
+	# predPres <- predVals[testSurveys$status == '2 detected']
+	# predShortTerm <- predVals[testSurveys$status == '1 recent absence']
+	# predLongTerm <- predVals[testSurveys$status == '0 long absence']
+
+	# tholdPres_vs_shortTermAbs <- enmSdmX::evalThreshold(predPres, predShortTerm)[['mdss']]
+	# tholdPres_vs_longTermAbs <- enmSdmX::evalThreshold(predPres, predLongTerm)[['mdss']]
+	# tholdShortTerm_vs_longTermAbs <- enmSdmX::evalThreshold(predShortTerm, predLongTerm)[['mdss']]
+	
+	# predRecentOcc <- pred > tholdShortTerm_vs_longTermAbs & pred < tholdPres_vs_shortTermAbs
+		
+	# cellAreas_km2 <- cellSize(pred) / 1000^2
+	# cellAreas_km2 <- predRecentOcc * cellAreas_km2
+	
+	# plot(cellAreas_km2)
+	# plot(sn, add = TRUE)
+	# plot(gap, border = 'blue', add = TRUE)
+
+	# recentAbsAreaInGap_km2 <- extract(cellAreas_km2, gap, ID = FALSE, weight = TRUE)
+	# recentAbsAreaInGap_km2 <- sum(apply(recentAbsAreaInGap_km2, 1, prod))
+
+	# sink('./Figures & Tables/Area of Gap.txt', split = TRUE)
+		# say(date())
+		# say('')
+		# say('Area of pika gap estimated from previously-known occurrences using Delauney triangles extended to east/west extent of EPA III Sierra Nevada ecoregion is is ', round(gapArea_km2), ' km2.')
+		# say('Area of Sierra Nevada ecoregion is is ', round(snArea_km2), ' km2.')
+		# say('')
+		# say('Area that was recently suitable in the gap but is now unoccupied (area predicted to be "recent absence" class) is ', round(recentAbsAreaInGap_km2), ' km2.')
+		# say('')
+		# say('Current gap : Sierra Nevada total: ', round(gapArea_km2 / snArea_km2, 3))
+		# say('Suitable area lost / gap area: ', round(recentAbsAreaInGap_km2 / gapArea_km2, 3))
+		# say('Gap was until "recently" ', round(100 * (gapArea_km2 - gapArea_km2 / (1 + recentAbsAreaInGap_km2 / gapArea_km2)) / gapArea_km2, 1), '% smaller.')
+		
+	# sink()
+	
 
 say('DONE!!!!!!!!!!!!!!!!!!!!!!!!!!!!', level=1, pre=1)

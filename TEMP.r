@@ -1,41 +1,87 @@
-# source('E:/Ecology/Drive/Research/Pikas - California Gap (Erik Beever et al) V2/Code/TEMP.r')
+# source('C:/Ecology/Drive/Research/Pikas - California Gap (Erik Beever et al)/pika_californiaGap/TEMP.r')
 
-
-	xlab <- paste0('PC1 (', round(100 * pca$sdev[1]^2 / sum(pca$sdev^2), 1), '%)')
-	ylab <- paste0('PC2 (', round(100 * pca$sdev[2]^2 / sum(pca$sdev^2), 1), '%)')
-	png('./Figures & Tables/PCA with Test Classes.png', width=1800, height=1800, res=600)
-
-		par(cex.axis=0.5, cex.lab=0.6, mar=rep(1.8, 4), oma=rep(0, 4), lwd=0.6, bty='n', mgp=c(0.7, -0, 0), tck=-0.01)
+	# plot
+	png('./Figures & Tables/Gap Sampling.png', width=1200, height=1200, res=300)
 		
-		smoothScatter(pca$scores[ , 1:2], pch=16, nrpoints=0, xlab=xlab, ylab=ylab)
-		points(trainPres[ , pcs], pch=3, col=alpha('black', 0.4), cex=0.5 * cex)
+		par(mar=c(2, 1, 1, 1), cex.axis=0.4, mgp=c(3, 0, 0.2))
 		
-		pres <- testSurveys[testSurveys$status == '2 detected', ]
-		recentAbs <- testSurveys[testSurveys$status == '1 recent absence', ]
-		longTermAbs <- testSurveys[testSurveys$status == '0 long absence', ]
+		plot(focus, border='white')
 		
-		points(longTermAbs[ , pcs], pch=25, bg='red', cex=cex)
-		points(recentAbs[ , pcs], pch=23, bg='yellow', cex=cex)
-		points(pres[ , pcs], pch=21, bg='green', cex=cex)
-
-		mult <- 4
-		x0 <- 10.3
-		y0 <- -3
-		for (i in 1:9) {
+		usr <- par('usr')
+		xs <- pretty(c(usr[1], usr[2]))
+		ys <- pretty(c(usr[3], usr[4]))
+		axis(1, at=xs, tck=0.01, labels=xs, col=NA, col.ticks='black')
+		axis(2, at=ys, tck=0.01, labels=ys, col=NA, col.ticks='black')
 		
-			arrows(x0, y0, x0 + loads[i, 1] * mult, y0 + loads[i, 2] * mult, angle=20, length=0.07, xpd=NA)
-			
-			label <- rownames(loads)[i]
-			if (label == 'summer respite') {
-				ydelta <- + 0.2
-			} else {
-				ydelta <- 0
-			}
-			
-			text(x0 + loads[i, 1] * mult, y0 + loads[i, 2] * mult + ydelta, labels = label, cex=0.5, xpd=NA)
-		}
+		plot(hs, col=grays, legend=FALSE, add=TRUE)
+		plot(lakes, col = 'gray60', border = NA, add = TRUE)
+		plot(kdeClass, col=kdeCols, legend=FALSE, add=TRUE)
+		plot(west2, border='gray40', add=TRUE)
+		plot(west1, border='gray40', lwd=2, add=TRUE)
 
-		legend('topleft', inset=c(0.01, 0.1), legend=c('Background', 'Previously-known occurrence', 'Occupied', 'Formerly occupied', 'No evidence'), pch=c(NA, 3, 21, 23, 25), fill=c(blues9[6], NA, NA, NA, NA), col=c(NA, 'black', 'black', 'black', 'black'), pt.bg = c(NA, NA, 'green', 'yellow', 'red'), border=c('black', NA, NA, NA, NA), bty='n', bg=NA, cex=cex, xpd=NA)
+		testSurveysSpEa <- testSurveysSpEa[order(testSurveysSpEa$status), ]
+		
+		cols <- rep(NA, nrow(testSurveys))
+		cols[testSurveysSpEa$status == '0 long absence'] <- testLongTermAbsCol
+		cols[testSurveysSpEa$status == '1 recent absence'] <- testShortTermAbsCol
+		cols[testSurveysSpEa$status == '2 detected'] <- testPresCol
+		
+		pchs <- rep(NA, nrow(testSurveys))
+		pchs[testSurveysSpEa$status == '0 long absence'] <- testLongTermPch
+		pchs[testSurveysSpEa$status == '1 recent absence'] <- testShortTermPch
+		pchs[testSurveysSpEa$status == '2 detected'] <- testPresPch
+		
+		points(testSurveysSpEa, pch=pchs, col=cols, cex=0.6)
+		points(trainPresSpEa, pch=trainPresPch, cex=0.5, col=trainPresCol)
+		box()
+		
+		# legend
+		legendBreaks(
+			'bottomleft',
+			inset=0.01,
+			height=0.44,
+			width=0.27,
+			title='Previously-known\noccurrences',
+			titleAdj=c(0.5, 0.92),
+			col=kdeCols,
+			adjX=c(0.05, 0.225),
+			adjY=c(0.38, 0.85),
+			labels=c('\U2265min presence', paste0('\U2265', '5th percentile'), paste0('  \U2265', '10th percentile')),
+			labAdjX=0.58,
+			cex=0.54,
+			boxBg=alpha('white', 0.8)
+		)
+		
+		usr <- par('usr')
+		width <- usr[2] - usr[1]
+		height <- usr[4] - usr[3]
+		x <- usr[1] + 0.01 * width
+		y <- usr[3] + 0.17 * height
+		
+		legend(
+			x,
+			y,
+			legend=c('Previously-known occ.', 'Long-term test absence', 'Recent test absence', 'Test presence'),
+			pch=c(trainPresPch, testLongTermPch, testShortTermPch, testPresPch),
+			col=c(trainPresCol, testLongTermAbsCol, testShortTermAbsCol, testPresCol),
+			bty='n',
+			title='Surveys',
+			cex=0.45,
+			pt.cex=0.7
+		)
+		
+		# scale bar
+		size <- 50000 # length of scale bar in meters
+		x <- usr[2] - size - 0.02 * width
+		x <- c(x, x + size)
+		y <- usr[3] + rep(0.02 * height, 2)
+		
+		lines(x, y, lwd=4, xpd=NA, col='black', lend=1)
+		
+		x <- mean(x)
+		y <- usr[3] + 0.05 * height
+		text(x, y[1], labels=paste(size / 1000, 'km'), cex=0.5)
 
-
+		title(sub=date(), cex.sub=0.3, outer=TRUE, line=-1)
+		
 	dev.off()
