@@ -42,7 +42,7 @@
 ### graph of elevation of calibration and survey sites by type ###
 ### ancillary analyses of sites ###
 ### measure gap area ###
-
+### compare inter-point distances between sets of sites ###
 
 ###########################################
 ### libraries, variables, and functions ###
@@ -85,6 +85,7 @@
 		library(ggplot2)
 		# library(fossil)
 		library(party)
+		library(patchwork)
 		library(rgeos)
 		library(raster)
 		library(rJava)
@@ -2695,50 +2696,50 @@
 	
 	# ggsave(graph, file = './Figures & Tables/Elevation by Sites.png', dpi = 600, width = 8, height = 8)
 
-say('###################################')
-say('### ancillary analyses of sites ###')
-say('###################################')
+# say('###################################')
+# say('### ancillary analyses of sites ###')
+# say('###################################')
 
-	### inter-point distances between survey occurrences in the extreme NW corner of survey sites
-	#############################################################################################
+	# ### inter-point distances between survey occurrences in the extreme NW corner of survey sites
+	# #############################################################################################
 
-	sink('./Figures & Tables/Ancillary Analysis - Distances between Clusters of Test Detections.txt', split = TRUE)
-	say(date())
+	# sink('./Figures & Tables/Ancillary Analysis - Distances between Clusters of Test Detections.txt', split = TRUE)
+	# say(date())
 
-	# northwestern test presences
-	testSurveys <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
-	testPres <- testSurveys[status == '2 detected' & latWgs84 > 40]
-	testPres <- vect(testPres, geom = ll, crs = prismCrs)
+	# # northwestern test presences
+	# testSurveys <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
+	# testPres <- testSurveys[status == '2 detected' & latWgs84 > 40]
+	# testPres <- vect(testPres, geom = ll, crs = prismCrs)
 	
-	dists <- distance(testPres)
+	# dists <- distance(testPres)
 	
-	say('Number of survey detections in northwest part of gap: ', nrow(testPres), pre = 2)
-	say('Pairwise distance(s) between them in meters:')
-	print(round(dists))
+	# say('Number of survey detections in northwest part of gap: ', nrow(testPres), pre = 2)
+	# say('Pairwise distance(s) between them in meters:')
+	# print(round(dists))
 
-	# center/north of southern edge of gap test presences
-	testSurveys <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
-	testPres <- testSurveys[status == '2 detected' & latWgs84 > 39.6 & latWgs84 < 39.8]
-	testPres <- vect(testPres, geom = ll, crs = prismCrs)
+	# # center/north of southern edge of gap test presences
+	# testSurveys <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
+	# testPres <- testSurveys[status == '2 detected' & latWgs84 > 39.6 & latWgs84 < 39.8]
+	# testPres <- vect(testPres, geom = ll, crs = prismCrs)
 	
-	dists <- distance(testPres)
+	# dists <- distance(testPres)
 	
-	say('Number of survey detections in northern part of southern gap edge region: ', nrow(testPres), pre = 2)
-	say('Pairwise distance(s) between them in meters:')
-	print(round(dists))
+	# say('Number of survey detections in northern part of southern gap edge region: ', nrow(testPres), pre = 2)
+	# say('Pairwise distance(s) between them in meters:')
+	# print(round(dists))
 
-	# southeastern-most test presences
-	testSurveys <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
-	testPres <- testSurveys[status == '2 detected' & latWgs84 < 39.6]
-	testPres <- vect(testPres, geom = ll, crs = prismCrs)
+	# # southeastern-most test presences
+	# testSurveys <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
+	# testPres <- testSurveys[status == '2 detected' & latWgs84 < 39.6]
+	# testPres <- vect(testPres, geom = ll, crs = prismCrs)
 	
-	dists <- distance(testPres)
+	# dists <- distance(testPres)
 	
-	say('Number of survey detections in southeastern-most part of gap: ', nrow(testPres), pre = 2)
-	say('Pairwise distance(s) between them in meters:')
-	print(round(dists))
+	# say('Number of survey detections in southeastern-most part of gap: ', nrow(testPres), pre = 2)
+	# say('Pairwise distance(s) between them in meters:')
+	# print(round(dists))
 
-	sink()
+	# sink()
 
 	# # # ### shortest distance between training occurrences and recent test sites in almost southeastern-most locale
 	# # # ###########################################################################################################
@@ -2825,7 +2826,7 @@ say('###################################')
 	# plot(gapCounties, border = 'red')
 	# plot(trainPres, add = TRUE)
 	# plot(del, add = TRUE)
-	# delArea_km2 <- expanse(del) / 1000^2
+	# delArea_m2 <- expanse(del) / 1000^2
 	
 	# # manually select triangles from Delauney triangulation spanning gap
 	# # pts <- click(n = 4) # how I got the points below
@@ -2869,8 +2870,8 @@ say('###################################')
 	# plot(gap, border=4, add=TRUE)
 
 	# gap <- intersect(sn, gap)
-	# gapArea_km2 <- expanse(gap) / 1000^2
-	# snArea_km2 <- expanse(sn) / 1000^2
+	# gapArea_m2 <- expanse(gap) / 1000^2
+	# snArea_m2 <- expanse(sn) / 1000^2
 	
 	# ### area of "recently-occupied" gap (area of "recent occupied" area predicted by model within gap Delauney triangles)
 	# #####################################################################################################################
@@ -2894,29 +2895,140 @@ say('###################################')
 	
 	# predRecentOcc <- pred > tholdShortTerm_vs_longTermAbs & pred < tholdPres_vs_shortTermAbs
 		
-	# cellAreas_km2 <- cellSize(pred) / 1000^2
-	# cellAreas_km2 <- predRecentOcc * cellAreas_km2
+	# cellAreas_m2 <- cellSize(pred) / 1000^2
+	# cellAreas_m2 <- predRecentOcc * cellAreas_m2
 	
-	# plot(cellAreas_km2)
+	# plot(cellAreas_m2)
 	# plot(sn, add = TRUE)
 	# plot(gap, border = 'blue', add = TRUE)
 
-	# recentAbsAreaInGap_km2 <- extract(cellAreas_km2, gap, ID = FALSE, weight = TRUE)
-	# recentAbsAreaInGap_km2 <- sum(apply(recentAbsAreaInGap_km2, 1, prod))
+	# recentAbsAreaInGap_m2 <- extract(cellAreas_m2, gap, ID = FALSE, weight = TRUE)
+	# recentAbsAreaInGap_m2 <- sum(apply(recentAbsAreaInGap_m2, 1, prod))
 
 	# sink('./Figures & Tables/Area of Gap.txt', split = TRUE)
 		# say(date())
 		# say('')
-		# say('Area of pika gap estimated from previously-known occurrences using Delauney triangles extended to east/west extent of EPA III Sierra Nevada ecoregion is is ', round(gapArea_km2), ' km2.')
-		# say('Area of Sierra Nevada ecoregion is is ', round(snArea_km2), ' km2.')
+		# say('Area of pika gap estimated from previously-known occurrences using Delauney triangles extended to east/west extent of EPA III Sierra Nevada ecoregion is is ', round(gapArea_m2), ' km2.')
+		# say('Area of Sierra Nevada ecoregion is is ', round(snArea_m2), ' km2.')
 		# say('')
-		# say('Area that was recently suitable in the gap but is now unoccupied (area predicted to be "recent absence" class) is ', round(recentAbsAreaInGap_km2), ' km2.')
+		# say('Area that was recently suitable in the gap but is now unoccupied (area predicted to be "recent absence" class) is ', round(recentAbsAreaInGap_m2), ' km2.')
 		# say('')
-		# say('Current gap : Sierra Nevada total: ', round(gapArea_km2 / snArea_km2, 3))
-		# say('Suitable area lost / gap area: ', round(recentAbsAreaInGap_km2 / gapArea_km2, 3))
-		# say('Gap was until "recently" ', round(100 * (gapArea_km2 - gapArea_km2 / (1 + recentAbsAreaInGap_km2 / gapArea_km2)) / gapArea_km2, 1), '% smaller.')
+		# say('Current gap : Sierra Nevada total: ', round(gapArea_m2 / snArea_m2, 3))
+		# say('Suitable area lost / gap area: ', round(recentAbsAreaInGap_m2 / gapArea_m2, 3))
+		# say('Gap was until "recently" ', round(100 * (gapArea_m2 - gapArea_m2 / (1 + recentAbsAreaInGap_m2 / gapArea_m2)) / gapArea_m2, 1), '% smaller.')
 		
 	# sink()
+
+# say('###########################################################')
+# say('### compare inter-point distances between sets of sites ###')
+# say('###########################################################')
 	
+	# say('This section explores the distribution of inter-site distances.')
+
+	# testSurveys <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
+	# testSurveys <- vect(testSurveys, geom = ll, crs = prismCrs)
+	
+	# load('./Data/Occurrences/Training Surveys 03 Pika - Extracted Environmental Values with PCA.rda')
+	# trainPres <- vect(trainPres, geom = c('longWgs84', 'latWgs84'), crs = prismCrs)
+
+	# testPres <- testSurveys[testSurveys$status == '2 detected']
+	# recentAbs <- testSurveys[testSurveys$status == '1 recent absence']
+	# oldAbs <- testSurveys[testSurveys$status == '0 long absence']
+
+	# trainPres_m <- distance(trainPres)
+	# testPres_m <- distance(testPres)
+	# recentAbs_m <- distance(recentAbs)
+	# oldAbs_m <- distance(oldAbs)
+	
+	# trainPres_m <- as.matrix(trainPres_m)
+	# testPres_m <- as.matrix(testPres_m)
+	# recentAbs_m <- as.matrix(recentAbs_m)
+	# oldAbs_m <- as.matrix(oldAbs_m)
+	
+	# trainPres_m[upper.tri(trainPres_m)] <- NA
+	# testPres_m[upper.tri(testPres_m)] <- NA
+	# recentAbs_m[upper.tri(recentAbs_m)] <- NA
+	# oldAbs_m[upper.tri(oldAbs_m)] <- NA
+	
+	# trainPres_m <- c(trainPres_m)
+	# testPres_m <- c(testPres_m)
+	# recentAbs_m <- c(recentAbs_m)
+	# oldAbs_m <- c(oldAbs_m)
+	
+	# trainPres_m <- trainPres_m[!is.na(trainPres_m)]
+	# testPres_m <- testPres_m[!is.na(testPres_m)]
+	# recentAbs_m <- recentAbs_m[!is.na(recentAbs_m)]
+	# oldAbs_m <- oldAbs_m[!is.na(oldAbs_m)]
+	
+	# trainPresVsTestPres_m <- distance(trainPres, testPres)
+	# trainPresVsRecentAbs_m <- distance(trainPres, recentAbs)
+	# trainPresVsOldAbs_m <- distance(trainPres, oldAbs)
+	
+	# testPresVsRecentAbs_m <- distance(testPres, recentAbs)
+	# testPresVsOldAbs_m <- distance(testPres, oldAbs)
+	
+	# recentAbsVsOldAbs_m <- distance(recentAbs, oldAbs)
+
+	# trainPresVsTestPres_m <- c(trainPresVsTestPres_m)
+	# trainPresVsRecentAbs_m <- c(trainPresVsRecentAbs_m)
+	# trainPresVsOldAbs_m <- c(trainPresVsOldAbs_m)
+	# testPresVsRecentAbs_m <- c(testPresVsRecentAbs_m)
+	# testPresVsOldAbs_m <- c(testPresVsOldAbs_m)
+	# recentAbsVsOldAbs_m <- c(recentAbsVsOldAbs_m)
+	
+	
+	# dists <- data.frame(
+		# Group = c(
+			# # rep('Previously known occurrences', length(trainPres_m)),
+			# rep('Test presences', length(testPres_m)),
+			# rep('Recent test absences', length(recentAbs_m)),
+			# rep('Long-term test absences', length(oldAbs_m)),
+			# rep('Previously known occs. vs. Test presences', length(trainPresVsTestPres_m)),
+			# rep('Previously known occs. vs. recent test absences', length(trainPresVsRecentAbs_m)),
+			# rep('Previously known occs. vs. long-term test absences', length(trainPresVsOldAbs_m)),
+			# rep('Test presences vs. recent test absences', length(testPresVsRecentAbs_m)),
+			# rep('Test presences vs. long-term test absences', length(testPresVsOldAbs_m)),
+			# rep('Recent test absences vs. long-term test absences', length(recentAbsVsOldAbs_m))
+		# ),
+		# Set = c(
+			# # rep('vs. Self', length(trainPres_m) + length(testPres_m) + length(recentAbs_m) + length(oldAbs_m)),
+			# rep('vs. Self', length(testPres_m) + length(recentAbs_m) + length(oldAbs_m)),
+			# rep('vs. Previously known', length(trainPresVsTestPres_m) + length(trainPresVsRecentAbs_m) + length(trainPresVsOldAbs_m)),
+			# rep('Test vs. Test', length(testPresVsRecentAbs_m) + length(testPresVsOldAbs_m) + length(recentAbsVsOldAbs_m))
+		# ),
+		# dists = c(
+			# # trainPres_m,
+			# testPres_m,
+			# recentAbs_m,
+			# oldAbs_m,
+			# trainPresVsTestPres_m,
+			# trainPresVsRecentAbs_m,
+			# trainPresVsOldAbs_m,
+			# testPresVsRecentAbs_m,
+			# testPresVsOldAbs_m,
+			# recentAbsVsOldAbs_m
+		# )
+	# )
+	
+	# dists$dists <- dists$dists / 1000
+	
+	# vsSelf <- dists[dists$Set == 'vs. Self', ]
+	# vsSelfPlot <- ggplot(vsSelf, aes(x = dists, color = Group, fill = Group)) +
+		# geom_density(alpha = 0.4) +
+		# scale_x_continuous(trans = 'sqrt') +
+		# xlab('Distance (km)') + ylab('Density') +
+		# ggtitle('Pairwise point distances\nbetween sites in same group')
+		
+	# testVsTest <- dists[dists$Set == 'Test vs. Test', ]
+	# testVsTestPlot <- ggplot(testVsTest, aes(x = dists, color = Group, fill = Group)) +
+		# geom_density(alpha = 0.4) +
+		# scale_x_continuous(trans = 'sqrt') +
+		# xlab('Distance (km)') + ylab('Density') +
+		# ggtitle('Pairwise point distances\nbetween sites in different groups')
+		
+	# combo <- vsSelfPlot + testVsTestPlot
+	# ggsave(combo, file = './Figures & Tables/Inter-point Distances.png', width = 12, height = 6, dpi = 600)
+	
+
 
 say('DONE!!!!!!!!!!!!!!!!!!!!!!!!!!!!', level=1, pre=1)
