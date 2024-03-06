@@ -1,8 +1,8 @@
 ### OCHOTONA PRINCEPS - SPATIALLY-VARYING IMPORTANCE OF VARIABLES
 ### Adam B. Smith | Missouri Botanical Garden | adam.smith@mobot.org | 2017-02
 ###
-### source('C:/Ecology/Drive/Research/Pikas - California Gap (Erik Beever et al)/pika_californiaGap/California Pika Gap.r')
-### source('E:/Ecology/Drive/Research/Pikas - California Gap (Erik Beever et al)/pika_californiaGap/California Pika Gap.r')
+### source('C:/Ecology/Research/Pikas - California Gap (Erik Beever et al)/pika_californiaGap/California Pika Gap.r')
+### source('E:/Adam/Research/Pikas - California Gap (Erik Beever et al)/pika_californiaGap/California Pika Gap.r')
 ###
 ### CONTENTS ###
 ### libraries, variables, and functions ###
@@ -54,9 +54,8 @@
 	set.seed(1234567890)
 	
 	# working drive
-	drive <- 'C:'
-	# drive <- 'D:'
-	# drive <- 'E:'
+	drive <- 'C:/Ecology/'
+	# drive <- 'E:/Adam/'
 
 	# PRISM
 	# prismDrive <- 'F:'
@@ -65,7 +64,7 @@
 	# TerraClimate
 	tcDrive <- 'F:'
 
-	setwd(paste0(drive, '/ecology/Drive/Research/Pikas - California Gap (Erik Beever et al)'))
+	setwd(paste0(drive, '/Research/Pikas - California Gap (Erik Beever et al)'))
 
 	prismCrs <- '+proj=longlat +datum=NAD83 +no_defs'
 
@@ -88,7 +87,7 @@
 		library(patchwork)
 		library(rgeos)
 		library(raster)
-		library(rJava)
+		# library(rJava)
 		library(scales)
 		library(sf)
 		library(sp)
@@ -221,7 +220,7 @@
 	# ## study region extent derived from modified EPA Level III "Sierra Nevada" ecoregion plus 70-km buffer
 	# say('study region')
 		
-		# epa3 <- shapefile(paste0(drive, '/Ecology/Drive/Research Done/Iconic Species/Extents_Masks_Maps/EcoRegions/!OmernikEcoregions/us_eco_l3SarrREV'))
+		# epa3 <- shapefile(paste0(drive, '/Research Done/Iconic Species/Extents_Masks_Maps/EcoRegions/!OmernikEcoregions/us_eco_l3SarrREV'))
 
 		# snEa <- epa3[epa3$L3_KEY == '5  Sierra Nevada', ]
 		# snBuff <- gBuffer(snEa, width=1000 * studyRegionBuffer)
@@ -560,7 +559,7 @@
 # say('######################################################')	
 	
 	# dirCreate('./Data/Occurrences')
-	# surveys <- readRDS(paste0(drive, '/Ecology/Drive/Research Done/Iconic Species/Species Records - Pika/!Collated Data 2016-06-30 1256/00 Pika - Cleaned Using R - Usable Records for All Ochotona.rds'))
+	# surveys <- readRDS(paste0(drive, '/Research Done/Iconic Species/Species Records - Pika/!Collated Data 2016-06-30 1256/00 Pika - Cleaned Using R - Usable Records for All Ochotona.rds'))
 
 	# mask <- raster(paste0('./Study Region/mask_prism_sierraNevadaEpaLevel3Plus', studyRegionBuffer, 'kmBuffer.tif'))
 	
@@ -586,6 +585,9 @@
 	# ## subset to presences in study region
 	# studyRegion <- raster(paste0('./Study Region/mask_prism_sierraNevadaEpaLevel3Plus', studyRegionBuffer, 'kmBuffer.tif'))
 	# inStudyRegion <- raster::extract(mask, surveys[ , ll])
+
+	# surveys$origUsable <- as.logical(surveys$origUsable)
+	# surveys <- surveys[surveys$origUsable, ]
 	
 	# surveys <- surveys[!is.na(inStudyRegion), ] # just in Sierra Nevada + buffer study region
 	# surveys <- surveys[!(surveys$origRecencyOfSighting %in% 'years to decades (old pellets only)'), ]
@@ -715,13 +717,13 @@
 	# west1 <- sp::spTransform(west1, getCRS('climateNA', TRUE))
 	# west2 <- sp::spTransform(west2, getCRS('climateNA', TRUE))
 
-	# nam1 <- vect('C:/Ecology/Drive/Research Data/GADM/Version 4.1/High Res North America Level 1 sans Great Lakes SpatVector Albers.gpkg')
-	# nam2 <- vect('C:/Ecology/Drive/Research Data/GADM/Version 4.1/High Res North America Level 2 sans Great Lakes SpatVector Albers.gpkg')
+	# nam1 <- vect('C:/Research Data/GADM/Version 4.1/High Res North America Level 1 sans Great Lakes SpatVector Albers.gpkg')
+	# nam2 <- vect('C:/Research Data/GADM/Version 4.1/High Res North America Level 2 sans Great Lakes SpatVector Albers.gpkg')
 	# nam1 <- nam1[nam1$NAME_1 %in% c('California', 'Arizona', 'New Mexico', 'Utah', 'Oregon', 'Washington', 'Baja California', 'Baja California Sur', 'Idaho', 'Nevada', 'British Columbia', 'Sonora', 'Chihuahua', 'Montana', 'Sinola'), ]
 	# nam2 <- nam2[nam2$NAME_1 %in% c('California'), ]
 
 	# ### lakes
-	# lakes <- shapefile(paste0(drive, '/Ecology/Drive/Research Data/North America Rivers and Lakes USGS/hydrography_p_lakes_v2.shp'))
+	# lakes <- shapefile(paste0(drive, '/Research Data/North America Rivers and Lakes USGS/hydrography_p_lakes_v2.shp'))
 	# for (i in 1:20) {
 		# maxs <- which.max(lakes$Shape_Leng)
 		# lakes <- lakes[-maxs, ]
@@ -731,6 +733,11 @@
 	# # training occurrences
 	# load('./Data/Occurrences/Training Surveys 01 Pika - Selected Detections and Non-Detections from Data Providers in Study Region.rda')
 	# trainPres <- surveys[surveys$origRecentPikaOrSignsObserved, ]
+	# trainPres$origUsable <- as.logical(trainPres$origUsable)
+	# trainPres <- trainPres[trainPres$origUsable, ]
+	
+	# trainPres <- trainPres[-which(trainPres$dataName == 'Connie Millar - Subset A - Pika Present' & trainPres$origLocality == 'Sierra Nevada; Humphreys Basin; Goethe rock glacier; at rg outlet stream; Fresno; CA' & trainPres$origElev == 3523 & trainPres$origNotes != 'RGC; granitic;' & trainPres$origDateOfObs == '8/16/2011'), ]
+
 	# trainPresSp <- SpatialPointsDataFrame(trainPres[ , ll], data=trainPres, proj4=getCRS('wgs84', TRUE))
 	# trainPresSpEa <- sp::spTransform(trainPresSp, getCRS('climateNA', TRUE))
 
@@ -959,7 +966,7 @@
 		
 	# # # dev.off()
 	
-	# iucn <- vect(paste0(drive, '/Ecology/Drive/Research Data/IUCN Range Maps/Mammals 2022-05-23/MAMMALS_TERRESTRIAL_ONLY.shp'))
+	# iucn <- vect(paste0(drive, '/Research Data/IUCN Range Maps/Mammals 2022-05-23/MAMMALS_TERRESTRIAL_ONLY.shp'))
 	# iucn <- iucn[iucn$binomial == 'Ochotona princeps', ]
 	# iucn <- project(iucn, nam1)
 
@@ -2080,6 +2087,12 @@
 	# load('./ENMs/Background Sites/PCA on Random Background Sites from across Study Region Mask.rda')
 	
 	# load('./Data/Occurrences/Training Surveys 03 Pika - Extracted Environmental Values with PCA.rda')
+	# trainPres$origUsable <- as.logical(trainPres$origUsable)
+	# trainPres <- trainPres[trainPres$origUsable, ]
+	
+	# # remove erroneous point in desert
+	# trainPres <- trainPres[-which(trainPres$dataName == 'Connie Millar - Subset A - Pika Present' & trainPres$origLocality == 'Sierra Nevada; Humphreys Basin; Goethe rock glacier; at rg outlet stream; Fresno; CA' & trainPres$origElev == 3523 & trainPres$origNotes != 'RGC; granitic;' & trainPres$origDateOfObs == '8/16/2011'), ]
+	
 	# testSurveys <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
 	# testSurveys <- as.data.frame(testSurveys)
 	
@@ -2094,7 +2107,6 @@
 	# names(loads) <- paste0('PC', 1:9)
 	# rownames(loads) <- c('eastness', 'northness', 'acute cold', 'chronic heat', 'water deficit', 'solar radiation', 'summer respite', 'SWE', 'NDVI')
 	
-
 	# xlab <- paste0('PC1 (', round(100 * pca$sdev[1]^2 / sum(pca$sdev^2), 1), '%)')
 	# ylab <- paste0('PC2 (', round(100 * pca$sdev[2]^2 / sum(pca$sdev^2), 1), '%)')
 	# png('./Figures & Tables/PCA with Test Classes.png', width=1800, height=1800, res=600)
@@ -2133,7 +2145,7 @@
 
 
 	# dev.off()	
-	
+
 # say('##############################################################################')
 # say('### visual comparison of background, TRAINING, and TEST sites by predictor ###')
 # say('##############################################################################')	
@@ -2143,6 +2155,9 @@
 
 	# load('./ENMs/Background Sites/Random Background Sites from across Study Region Mask.rda')
 	# load('./Data/Occurrences/Training Surveys 03 Pika - Extracted Environmental Values with PCA.rda')
+	# trainPres$origUsable <- as.logical(trainPres$origUsable)
+	# trainPres <- trainPres[trainPres$origUsable, ]
+
 	# testSurveys <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
 	# testSurveys <- as.data.frame(testSurveys)
 	
@@ -2211,8 +2226,10 @@
 
 	# ### training occurrences
 	# load('./Data/Occurrences/Training Surveys 01 Pika - Selected Detections and Non-Detections from Data Providers in Study Region.rda')
-	# trainPres <- surveys[surveys$origRecentPikaOrSignsObserved, ]
-	# trainPresSp <- SpatialPointsDataFrame(trainPres[ , ll], data=trainPres, proj4=getCRS('wgs84', TRUE))
+	# surveys$origUsable <- as.logical(surveys$origUsable)
+	# surveys <- surveys[surveys$origUsable, ]	
+	# surveys <- surveys[surveys$origRecentPikaOrSignsObserved, ]
+	# trainPresSp <- SpatialPointsDataFrame(surveys[ , ll], data=surveys, proj4=getCRS('wgs84', TRUE))
 	# trainPresSpEa <- sp::spTransform(trainPresSp, getCRS('climateNA', TRUE))
 
 	# ### test occurrences
@@ -2245,7 +2262,7 @@
 	# endCluster()
 
 	# ### lakes
-	# lakes <- shapefile(paste0(drive, '/Ecology/Drive/Research Data/North America Rivers and Lakes USGS/hydrography_p_lakes_v2.shp'))
+	# lakes <- shapefile(paste0(drive, '/Research Data/North America Rivers and Lakes USGS/hydrography_p_lakes_v2.shp'))
 	# for (i in 1:20) {
 		# maxs <- which.max(lakes$Shape_Leng)
 		# lakes <- lakes[-maxs, ]
@@ -2646,10 +2663,12 @@
 	# # Make a violin plot of occurrences/test sites where y-axis is elevation and x is category (train, test no evidence, test recent evidence, test occupied)
 
 	# # prismElev <- rast('./Data/Topography - SRTM/elevation_srtm_m.tif')
-	# prismElev <- rast('C:/Ecology/Drive/Research Data/PRISM/PRISM_us_dem_800m.tif')
+	# prismElev <- rast(paste0(drive, '/Research Data/PRISM/PRISM_us_dem_800m.tif'))
 
 	# # records
 	# load('./Data/Occurrences/Training Surveys 03 Pika - Extracted Environmental Values with PCA.rda')
+	# trainPres$origUsable <- as.logical(trainPres$origUsable)
+	# trainPres <- trainPres[trainPres$origUsable, ]
 	# test <- fread('./Data/Occurrences/Test Surveys 04 Extracted Environmental Values with PCA.csv')
 
 	# # convert to spatial
