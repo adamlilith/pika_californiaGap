@@ -43,6 +43,7 @@
 ### ancillary analyses of sites ###
 ### measure gap area ###
 ### compare inter-point distances between sets of sites ###
+### pairwise distances between surveyed test sites with detections ###
 
 ###########################################
 ### libraries, variables, and functions ###
@@ -3048,6 +3049,26 @@
 	# combo <- vsSelfPlot + testVsTestPlot
 	# ggsave(combo, file = './Figures & Tables/Inter-point Distances.png', width = 12, height = 6, dpi = 600)
 	
+# say('######################################################################')
+# say('### pairwise distances between surveyed test sites with detections ###')
+# say('######################################################################')	
 
+	# testSurveys <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
+	# testSurveys <- vect(testSurveys, geom = ll, crs = prismCrs)
+	# detectSurveys <- testSurveys[testSurveys$status == '2 detected']
+	
+	# dists <- distance(detectSurveys)
+	# dists <- as.matrix(dists)
+	# dists <- dists / 1000
+	# dists <- round(dists, 3)
+	# diag(dists) <- NA
+
+	# minDist_km <- apply(dists, 2, min, na.rm = TRUE)
+	
+	# sink('./Figures & Tables/Inter-point Distances between Test Sites with Detections in km.txt', split = TRUE)
+	# say('Minimum pairwise distances between each survey test site with a detection and any other survey site with a detection (km):')
+	# say(minDist_km)
+	# sink()
+	
 
 say('DONE!!!!!!!!!!!!!!!!!!!!!!!!!!!!', level=1, pre=1)
