@@ -57,8 +57,8 @@
 	set.seed(1234567890)
 	
 	# working drive
-	drive <- 'C:/Ecology/'
-	# drive <- 'E:/Adam/'
+	# drive <- 'C:/Ecology/'
+	drive <- 'E:/Adam/'
 
 	# PRISM
 	# prismDrive <- 'F:'
@@ -335,144 +335,144 @@
 		
 		# # save(plumasBuffer, file='./Study Region/GADM Plumas County + 35-km Buffer.rda')
 
-say('#################################')
-say('### process predictor rasters ###')
-say('#################################')
+# say('#################################')
+# say('### process predictor rasters ###')
+# say('#################################')
 
-	### calculate raster representing mean monthly values for each variable across a set time period
-	### from these calculate specific predictor variable rasters
+	# ### calculate raster representing mean monthly values for each variable across a set time period
+	# ### from these calculate specific predictor variable rasters
 
-	# calculate time period for climate layers
-	load('./Data/Occurrences/Training Surveys 01 Pika - Selected Detections and Non-Detections from Data Providers in Study Region.rda')
+	# # calculate time period for climate layers
+	# load('./Data/Occurrences/Training Surveys 01 Pika - Selected Detections and Non-Detections from Data Providers in Study Region.rda')
 	
-	png(paste0('./Figures & Tables/Year of Observations.png'), height=900, width=900, res=200)
-		hist(surveys$obsYear, breaks=(min(surveys$obsYear) - 1):(max(surveys$obsYear) + 1), main='Observations', xlab='Year')
-	dev.off()
+	# png(paste0('./Figures & Tables/Year of Observations.png'), height=900, width=900, res=200)
+		# hist(surveys$obsYear, breaks=(min(surveys$obsYear) - 1):(max(surveys$obsYear) + 1), main='Observations', xlab='Year')
+	# dev.off()
 
-	mask <- terra::rast(paste0('./Study Region/mask_prism_sierraNevadaEpaLevel3Plus', studyRegionBuffer, 'kmBuffer.tif'))
+	# mask <- terra::rast(paste0('./Study Region/mask_prism_sierraNevadaEpaLevel3Plus', studyRegionBuffer, 'kmBuffer.tif'))
 
-	data('doyNonLeap', package='omnibus')
+	# data('doyNonLeap', package='omnibus')
 
-	# calculate monthly means of max/min temperature and ppt from PRISM and TerraClimate
-	for (variable in c('tmin', 'tmax', 'srad', 'def', 'swe', 'vpdmax', )) { # ALL
-	# for (variable in c('tmin', 'tmax', 'vpdmax')) { # PRISM variables
-	# for (variable in c('srad', 'def', 'swe')) { # TerraClimate variables
+	# # calculate monthly means of max/min temperature and ppt from PRISM and TerraClimate
+	# for (variable in c('tmin', 'tmax', 'srad', 'def', 'swe', 'vpdmax', )) { # ALL
+	# # for (variable in c('tmin', 'tmax', 'vpdmax')) { # PRISM variables
+	# # for (variable in c('srad', 'def', 'swe')) { # TerraClimate variables
 		
-		dirCreate('./Data/Climate - Monthly Means/', variable)
+		# dirCreate('./Data/Climate - Monthly Means/', variable)
 
-		months <- if (variable %in% c('tmax', 'srad', 'def', 'vpdmax')) {
-			6:9
-		} else if (variable %in% c( 'tmin', 'swe')) {
-			1:12
-		}
+		# months <- if (variable %in% c('tmax', 'srad', 'def', 'vpdmax')) {
+			# 6:9
+		# } else if (variable %in% c( 'tmin', 'swe')) {
+			# 1:12
+		# }
 
-		for (month in months) {
+		# for (month in months) {
 		
-			say(variable, ' | month ', month, ' | year', post=0)
+			# say(variable, ' | month ', month, ' | year', post=0)
 		
-			for (year in years) {
+			# for (year in years) {
 		
-				say(year, post=ifelse(year == max(years), 1, 0))
+				# say(year, post=ifelse(year == max(years), 1, 0))
 
-				# mid-day of this month
-				midMonthDoy <- doyNonLeap[15, paste0('month', month)]
+				# # mid-day of this month
+				# midMonthDoy <- doyNonLeap[15, paste0('month', month)]
 			
-				if (variable %in% c('ppt', 'tmin', 'tmax', 'vpdmax')) {
-					thisMonthYear <- terra::rast(paste0(prismDrive, '/ecology/Climate/PRISM/working/an81/' , variable, '/monthly/', year, '/prism_', variable, '_us_30s_' , year, prefix(month, 2), '.tif'))
-				} else if (variable %in% c('pet', 'srad', 'swe')) {
-					thisMonthYear <- terra::rast(paste0(tcDrive, '/ecology/Climate/TerraClimate/ORIGINALS/', variable, '/TerraClimate_', variable, '_', year, '.nc'))
-					thisMonthYear <- thisMonthYear[[month]]
-				}
+				# if (variable %in% c('ppt', 'tmin', 'tmax', 'vpdmax')) {
+					# thisMonthYear <- terra::rast(paste0(prismDrive, '/ecology/Climate/PRISM/working/an81/' , variable, '/monthly/', year, '/prism_', variable, '_us_30s_' , year, prefix(month, 2), '.tif'))
+				# } else if (variable %in% c('pet', 'srad', 'swe')) {
+					# thisMonthYear <- terra::rast(paste0(tcDrive, '/ecology/Climate/TerraClimate/ORIGINALS/', variable, '/TerraClimate_', variable, '_', year, '.nc'))
+					# thisMonthYear <- thisMonthYear[[month]]
+				# }
 				
-				thisMonthYear <- terra::resample(thisMonthYear, mask)
-				thisMonthYear <- terra::crop(thisMonthYear, mask)
+				# thisMonthYear <- terra::resample(thisMonthYear, mask)
+				# thisMonthYear <- terra::crop(thisMonthYear, mask)
 				
-				thisMonth <- if (!exists('thisMonth', inherits=FALSE)) {
-					thisMonthYear
-				} else {
-					c(thisMonth, thisMonthYear)
-				}
+				# thisMonth <- if (!exists('thisMonth', inherits=FALSE)) {
+					# thisMonthYear
+				# } else {
+					# c(thisMonth, thisMonthYear)
+				# }
 				
-			} # next year
+			# } # next year
 			
-			# calculate mean for this month across years
-			meanForMonth <- mean(thisMonth)
-			names(meanForMonth) <- variable
+			# # calculate mean for this month across years
+			# meanForMonth <- mean(thisMonth)
+			# names(meanForMonth) <- variable
 			
-			terra::writeRaster(meanForMonth, paste0('./Data/Climate - Monthly Means/', variable, '/', variable, '_month', prefix(month, 2), '_mean', min(years), 'to', max(years), '.tif'), overwrite=TRUE, wopt=c(wopt, names=variable))
+			# terra::writeRaster(meanForMonth, paste0('./Data/Climate - Monthly Means/', variable, '/', variable, '_month', prefix(month, 2), '_mean', min(years), 'to', max(years), '.tif'), overwrite=TRUE, wopt=c(wopt, names=variable))
 			
-			rm(thisMonth, meanForMonth); gc()
+			# rm(thisMonth, meanForMonth); gc()
 			
-		} # next month
+		# } # next month
 		
-	} # next variable
+	# } # next variable
 
-	dirCreate('./Data/Climate - Derived')
+	# dirCreate('./Data/Climate - Derived')
 	
-	say('ASPECT')
+	# say('ASPECT')
 	
-		elev <- terra::rast(paste0(drive, '/Ecology/Climate/PRISM/PRISM_us_dem_800m.tif'))
-		aspect <- terra::terrain(elev, v='aspect')
-		aspect <- terra::crop(aspect, mask)
-		aspect <- pi * aspect / 180
-		northness <- sin(aspect)
-		eastness <- cos(aspect)
-		names(northness) <- 'northness'
-		names(eastness) <- 'eastness'
+		# elev <- terra::rast(paste0(drive, '/Ecology/Climate/PRISM/PRISM_us_dem_800m.tif'))
+		# aspect <- terra::terrain(elev, v='aspect')
+		# aspect <- terra::crop(aspect, mask)
+		# aspect <- pi * aspect / 180
+		# northness <- sin(aspect)
+		# eastness <- cos(aspect)
+		# names(northness) <- 'northness'
+		# names(eastness) <- 'eastness'
 		
-		terra::writeRaster(northness, './Data/Climate - Derived/northness.tif', overwrite=TRUE, wopt=c(wopt, names='northness'))
-		terra::writeRaster(eastness, './Data/Climate - Derived/eastness.tif', overwrite=TRUE, wopt=c(wopt, names='eastness'))
+		# terra::writeRaster(northness, './Data/Climate - Derived/northness.tif', overwrite=TRUE, wopt=c(wopt, names='northness'))
+		# terra::writeRaster(eastness, './Data/Climate - Derived/eastness.tif', overwrite=TRUE, wopt=c(wopt, names='eastness'))
 		
-	say('CHRONIC HEAT')
+	# say('CHRONIC HEAT')
 	
-		rasts <- terra::rast(listFiles('./Data/Climate - Monthly Means/tmax', pattern='.tif'))
-		chronicHeat <- mean(rasts)
-		terra::writeRaster(chronicHeat, './Data/Climate - Derived/chronicHeat_C.tif', overwrite=TRUE, wopt=c(wopt, names='chronicHeat_C'))
+		# rasts <- terra::rast(listFiles('./Data/Climate - Monthly Means/tmax', pattern='.tif'))
+		# chronicHeat <- mean(rasts)
+		# terra::writeRaster(chronicHeat, './Data/Climate - Derived/chronicHeat_C.tif', overwrite=TRUE, wopt=c(wopt, names='chronicHeat_C'))
 		
-	say('SUMMER NIGHTTIME HEAT')
+	# say('SUMMER NIGHTTIME HEAT')
 	
-		rasts <- terra::rast(listFiles('./Data/Climate - Monthly Means/tmin', pattern='.tif'))
-		rasts <- rasts[[6:9]]
-		summerNightHeat <- mean(rasts)
-		terra::writeRaster(summerNightHeat, './Data/Climate - Derived/summerNightTemp_C.tif', overwrite=TRUE, wopt=c(wopt, names='summerNightTemp_C'))
+		# rasts <- terra::rast(listFiles('./Data/Climate - Monthly Means/tmin', pattern='.tif'))
+		# rasts <- rasts[[6:9]]
+		# summerNightHeat <- mean(rasts)
+		# terra::writeRaster(summerNightHeat, './Data/Climate - Derived/summerNightTemp_C.tif', overwrite=TRUE, wopt=c(wopt, names='summerNightTemp_C'))
 		
-	say('ACUTE COLD')
+	# say('ACUTE COLD')
 	
-		rasts <- terra::rast(listFiles('./Data/Climate - Monthly Means/tmin', pattern='.tif'))
-		acuteCold <- min(rasts)
-		terra::writeRaster(acuteCold, './Data/Climate - Derived/acuteCold_C.tif', overwrite=TRUE, wopt=c(wopt, names='acuteCold_C'))
+		# rasts <- terra::rast(listFiles('./Data/Climate - Monthly Means/tmin', pattern='.tif'))
+		# acuteCold <- min(rasts)
+		# terra::writeRaster(acuteCold, './Data/Climate - Derived/acuteCold_C.tif', overwrite=TRUE, wopt=c(wopt, names='acuteCold_C'))
 		
-	say('VPDMAX')
+	# say('VPDMAX')
 	
-		rasts <- terra::rast(listFiles('./Data/Climate - Monthly Means/vpdmax', pattern='.tif'))
-		vpdmax_haPa <- mean(rasts)
-		terra::writeRaster(vpdmax_haPa, './Data/Climate - Derived/vpdmax_haPa.tif', overwrite=TRUE, wopt=c(wopt, names='vpdmax_haPa'))
+		# rasts <- terra::rast(listFiles('./Data/Climate - Monthly Means/vpdmax', pattern='.tif'))
+		# vpdmax_haPa <- mean(rasts)
+		# terra::writeRaster(vpdmax_haPa, './Data/Climate - Derived/vpdmax_haPa.tif', overwrite=TRUE, wopt=c(wopt, names='vpdmax_haPa'))
 		
-	say('SWE')
+	# say('SWE')
 
-		rasts <- terra::rast(listFiles('./Data/Climate - Monthly Means/swe', pattern='.tif'))
-		swe <- sum(rasts)
-		terra::writeRaster(swe, './Data/Climate - Derived/swe_mm.tif', overwrite=TRUE, wopt=c(wopt, names='swe_mm'))
+		# rasts <- terra::rast(listFiles('./Data/Climate - Monthly Means/swe', pattern='.tif'))
+		# swe <- sum(rasts)
+		# terra::writeRaster(swe, './Data/Climate - Derived/swe_mm.tif', overwrite=TRUE, wopt=c(wopt, names='swe_mm'))
 		
-	say('SUMMER SRAD')
+	# say('SUMMER SRAD')
 
-		rasts <- terra::rast(listFiles('./Data/Climate - Monthly Means/srad', pattern='.tif'))
-		srad <- sum(rasts)
-		terra::writeRaster(srad, './Data/Climate - Derived/summerSrad.tif', overwrite=TRUE, wopt=c(wopt, names='summerSrad'))
+		# rasts <- terra::rast(listFiles('./Data/Climate - Monthly Means/srad', pattern='.tif'))
+		# srad <- sum(rasts)
+		# terra::writeRaster(srad, './Data/Climate - Derived/summerSrad.tif', overwrite=TRUE, wopt=c(wopt, names='summerSrad'))
 
-	say('GSWD')
+	# say('GSWD')
 
-		rasts <- terra::rast(listFiles('./Data/Climate - Monthly Means/def', pattern='.tif'))
-		gswb <- sum(rasts)
-		terra::writeRaster(gswb, './Data/Climate - Derived/growSeasonWaterDef_mm.tif', overwrite=TRUE, wopt=c(wopt, names='growSeasonWaterDef_mm'))
+		# rasts <- terra::rast(listFiles('./Data/Climate - Monthly Means/def', pattern='.tif'))
+		# gswb <- sum(rasts)
+		# terra::writeRaster(gswb, './Data/Climate - Derived/growSeasonWaterDef_mm.tif', overwrite=TRUE, wopt=c(wopt, names='growSeasonWaterDef_mm'))
 	
-	say('NDVI')
+	# say('NDVI')
 		
-		ndvi <- terra::rast('./Data/NDVI 1990-2010/Raw/NDVI.tif')
-		ndvi <- mean(ndvi)
-		ndvi <- terra::project(ndvi, mask)
-		ndvi <- crop(ndvi, mask)
-		terra::writeRaster(ndvi, paste0('./Data/NDVI 1990-2010/ndvi.tif'), overwrite=TRUE, wopt=c(wopt, names='ndvi'))
+		# ndvi <- terra::rast('./Data/NDVI 1990-2010/Raw/NDVI.tif')
+		# ndvi <- mean(ndvi)
+		# ndvi <- terra::project(ndvi, mask)
+		# ndvi <- crop(ndvi, mask)
+		# terra::writeRaster(ndvi, paste0('./Data/NDVI 1990-2010/ndvi.tif'), overwrite=TRUE, wopt=c(wopt, names='ndvi'))
 
 	# ##########################
 	# say('PLOT ALL PREDICTORS')
@@ -721,8 +721,8 @@ say('#################################')
 	# west1 <- sp::spTransform(west1, getCRS('climateNA', TRUE))
 	# west2 <- sp::spTransform(west2, getCRS('climateNA', TRUE))
 
-	# nam1 <- vect(paste0(drive, 'Research Data/GADM/Version 4.1/High Res North America Level 1 sans Great Lakes SpatVector Albers.gpkg'))
-	# nam2 <- vect(paste0(drive, 'Research Data/GADM/Version 4.1/High Res North America Level 2 sans Great Lakes SpatVector Albers.gpkg'))
+	# nam1 <- vect('C:/Research Data/GADM/Version 4.1/High Res North America Level 1 sans Great Lakes SpatVector Albers.gpkg')
+	# nam2 <- vect('C:/Research Data/GADM/Version 4.1/High Res North America Level 2 sans Great Lakes SpatVector Albers.gpkg')
 	# nam1 <- nam1[nam1$NAME_1 %in% c('California', 'Arizona', 'New Mexico', 'Utah', 'Oregon', 'Washington', 'Baja California', 'Baja California Sur', 'Idaho', 'Nevada', 'British Columbia', 'Sonora', 'Chihuahua', 'Montana', 'Sinola'), ]
 	# nam2 <- nam2[nam2$NAME_1 %in% c('California'), ]
 
@@ -773,7 +773,7 @@ say('#################################')
 	# endCluster()
 
 	# kdeVals <- extract(kde, trainPresSpEa)
-	# quants <- quantile(kdeVals[kdeVals > 0], c(0.01, 0.025), na.rm = TRUE)
+	# quants <- quantile(kdeVals[kdeVals > 0], c(0.05, 0.1), na.rm = TRUE)
 
 	# # kdeVals <- extract(kde, trainPresSpEa)
 	# # quants <- quantile(kdeVals, c(0.05, 0.1))
@@ -842,7 +842,7 @@ say('#################################')
 			# col=kdeCols,
 			# adjX=c(0.05, 0.225),
 			# adjY=c(0.38, 0.85),
-			# labels=c('\U2265min presence', paste0('\U2265', '1st percentile'), paste0('  \U2265', '2.5th percentile')),
+			# labels=c('\U2265min presence', paste0('\U2265', '5th percentile'), paste0('  \U2265', '10th percentile')),
 			# labAdjX=0.58,
 			# cex=0.54,
 			# boxBg=alpha('white', 0.8)
@@ -857,7 +857,7 @@ say('#################################')
 		# legend(
 			# x,
 			# y,
-			# legend=c('Previously-known occ.', 'No evidence', 'Formerly occupied', 'Currently occupied'),
+			# legend=c('Previously-known occ.', 'Long-term test absence', 'Recent test absence', 'Test presence'),
 			# pch=c(trainPresPch, testLongTermPch, testShortTermPch, testPresPch),
 			# col=c(trainPresCol, testLongTermAbsCol, testShortTermAbsCol, testPresCol),
 			# bty='n',
@@ -1028,7 +1028,7 @@ say('#################################')
 			# col=kdeCols,
 			# adjX=c(0.08, 0.225),
 			# adjY=c(0.35, 0.77),
-			# labels=c('\U2265min presence', paste0('\U2265', '1st percentile'), paste0('  \U2265', '2.5th percentile')),
+			# labels=c('\U2265min presence', paste0('\U2265', '5th percentile'), paste0('  \U2265', '10th percentile')),
 			# labAdjX=0.58,
 			# cex=0.57,
 			# boxBg=alpha('white', 0.8)
@@ -2074,13 +2074,13 @@ say('#################################')
 	
 	# png('./Figures & Tables/Predicted Suitability by Test Site Class - Unweighted.png', width=1200, height=1200, res=300)
 		# par(mar=c(3, 4, 2, 1) + 0.1, cex.lab=0.8, cex.axis=0.8, cex.sub=0.4)
-		# boxplot(predictEnsemble ~ status, data=testSurveys, names=c('No\nevidence', 'Formerly\noccupied', 'Currently\noccupied'), ylim=c(0, 1), ylab='Predicted suitability')
+		# boxplot(predictEnsemble ~ status, data=testSurveys, names=c('Long-term\nabsence', 'Recent\nabsence', 'Presence'), ylim=c(0, 1), ylab='Predicted suitability')
 		# title(sub=date(), line=2)
 	# dev.off()
 	
 	# png('./Figures & Tables/Predicted Suitability by Test Site Class - Weighted.png', width=1200, height=1200, res=300)
 		# par(mar=c(3, 4, 2, 1) + 0.1, cex.lab=0.8, cex.axis=0.8, cex.sub=0.4)
-		# boxplot(predictEnsemble * weight ~ status, data=testSurveys, names=c('No\nevidence', 'Formerly\noccupied', 'Currently\noccupied'), ylab='Predicted suitability (weighted)')
+		# boxplot(predictEnsemble * weight ~ status, data=testSurveys, names=c('Long-term\nabsence', 'Recent\nabsence', 'Presence'), ylab='Predicted suitability (weighted)')
 		# title(sub=date(), line=2)
 	# dev.off()
 	
@@ -2145,7 +2145,7 @@ say('#################################')
 			# text(x0 + loads[i, 1] * mult, y0 + loads[i, 2] * mult + ydelta, labels = label, cex=0.5, xpd=NA)
 		# }
 
-		# legend('topleft', inset=c(0.01, 0.1), legend=c('Background', 'Previously-known occurrence', 'Currently occupied', 'Formerly occupied', 'No evidence'), pch=c(NA, 3, 21, 23, 25), fill=c(blues9[6], NA, NA, NA, NA), col=c(NA, 'black', 'black', 'black', 'black'), pt.bg = c(NA, NA, 'green', 'yellow', 'red'), border=c('black', NA, NA, NA, NA), bty='n', bg=NA, cex=cex, xpd=NA)
+		# legend('topleft', inset=c(0.01, 0.1), legend=c('Background', 'Previously-known occurrence', 'Occupied', 'Formerly occupied', 'No evidence'), pch=c(NA, 3, 21, 23, 25), fill=c(blues9[6], NA, NA, NA, NA), col=c(NA, 'black', 'black', 'black', 'black'), pt.bg = c(NA, NA, 'green', 'yellow', 'red'), border=c('black', NA, NA, NA, NA), bty='n', bg=NA, cex=cex, xpd=NA)
 
 
 	# dev.off()	
@@ -2211,11 +2211,9 @@ say('#################################')
 	# # generalize
 	# focusBuff <- 25 # buffer size around test sites for generating focus of plot (in km)
 
-	# nam <- vect('C:/Ecology/Research Data/GADM/Version 4.1/High Res North America Level 1 sans Great Lakes SpatVector WGS84.gpkg')
-	# nam <- as(nam, 'Spatial')
-	# # usa <- raster::getData('GADM', country='USA', level=1, path='C:/!Scratch')
-	# # mex <- raster::getData('GADM', country='MEX', level=1, path='C:/!Scratch')
-	# # nam <- rbind(usa, mex)
+	# usa <- raster::getData('GADM', country='USA', level=1, path='C:/!Scratch')
+	# mex <- raster::getData('GADM', country='MEX', level=1, path='C:/!Scratch')
+	# nam <- rbind(usa, mex)
 	# nam <- sp::spTransform(nam, getCRS('climateNA', TRUE))
 
 	# ### spatial data
@@ -2328,7 +2326,7 @@ say('#################################')
 				# pointFillCol[pointPreds >= tholdShortVsLong & pointPreds < tholsShortVsPres] <- testShortTermAbsFill
 				# pointFillCol[pointPreds >= tholsShortVsPres] <- testPresFill
 				# rastLab <- 'No evidence predicted'
-				# pointLab <- c('Correctly predicted', 'Former occ. predicted', 'Current occ. predicted')
+				# pointLab <- c('Correctly predicted', 'Old evidence predicted', 'Presence predicted')
 				# pch <- testLongTermPch
 				# axis(2, at=pretty(c(usr[3:4]), 3), tck=-0.01)
 				
@@ -2347,7 +2345,7 @@ say('#################################')
 				# pointFillCol[pointPreds < tholdShortVsLong & pointPreds < tholsShortVsPres] <- NA
 				# pointFillCol[pointPreds >= tholsShortVsPres] <- testPresFill
 				# rastLab <- 'Old evidence predicted'
-				# pointLab <- c('No evidence predicted', 'Correctly predicted', 'Current occ. predicted')
+				# pointLab <- c('No evidence predicted', 'Correctly predicted', 'Presence predicted')
 				# pch <- testShortTermPch
 				
 				# legColBg <- c(NA, testLongTermAbsCol, NA, testPresFill)
@@ -2365,7 +2363,7 @@ say('#################################')
 				# pointFillCol[pointPreds >= tholdShortVsLong & pointPreds < tholsShortVsPres] <- testShortTermAbsFill
 				# pointFillCol[pointPreds >= tholsShortVsPres] <- NA
 				# rastLab <- 'Presence predicted'
-				# pointLab <- c('No evidence predicted', 'Former occ. predicted', 'Correctly predicted')
+				# pointLab <- c('No evidence predicted', 'Old evidence predicted', 'Correctly predicted')
 				# pch <- testPresPch
 				# axis(1, at=pretty(c(usr[1:2]), 3)[1:3], tck=-0.01)
 				# axis(2, at=pretty(c(usr[3:4]), 3), tck=-0.01)
@@ -2466,7 +2464,7 @@ say('#################################')
 		# legend(
 			# 'bottomleft',
 			# inset=0.01,
-			# legend=c('No evidence predicted', 'Former occ. predicted', 'Current occ. predicted', 'No evidence observed', 'Former occ. observed', 'Current occ. observed', 'Previously-known occ.'),
+			# legend=c('No evidence predicted', 'Old evidence predicted', 'Occurrence predicted', 'No evidence observed', 'Old evidence observed', 'Occurrence observed', 'Training occurrence'),
 			# pch=c(NA, NA, NA, testLongTermPch, testShortTermPch, testPresPch, trainPresPch),
 			# fill=c(predLongTermAbsCol, predShortTermAbsCol, predPresCol, NA, NA, NA, NA),
 			# border=c('black', 'black', 'black', NA, NA, NA, NA),
@@ -2693,24 +2691,24 @@ say('#################################')
 	# trainElev <- extract(prismElev, trainPres, ID = FALSE)
 
 	# testElev$status <- test$status
-	# testElev$status[testElev$status == '0 long absence'] <- 'No evidence'
-	# testElev$status[testElev$status == '1 recent absence'] <- 'Formerly occupied'
-	# testElev$status[testElev$status == '2 detected'] <- 'Currently occupied'
+	# testElev$status[testElev$status == '0 long absence'] <- 'Long-term test absence'
+	# testElev$status[testElev$status == '1 recent absence'] <- 'Recent test absence'
+	# testElev$status[testElev$status == '2 detected'] <- 'Test presence'
 
 	# trainElev$status <- 'Previously-known presence'
 
 	# elevs <- rbind(trainElev, testElev)
 	
-	# elevs$status <- factor(elevs$status, levels = c('Previously-known presence', 'No evidence', 'Formerly occupied', 'Currently occupied'), ordered = TRUE)
+	# elevs$status <- factor(elevs$status, levels = c('Previously-known presence', 'Long-term test absence', 'Recent test absence', 'Test presence'), ordered = TRUE)
 	
 	# graph <- ggplot(elevs, aes(x = status, y = PRISM_us_dem_800m, fill = status)) +
 	
 		# geom_violin() +
 		# scale_x_discrete(
-			# labels = c('Previously-known presence' = 'Previously-known\npresence','No evidence' = 'No\nevidence', 'Formerly occupied' = 'Formerly\noccupied', 'Currently occupied' = 'Currently\noccupied')
+			# labels = c('Previously-known presence' = 'Previously-known\npresence','Long-term test absence' = 'Long-term\ntest absence', 'Recent test absence' = 'Recent\ntest absence', 'Test presence' = 'Test\npresence')
 		# ) +
 		# scale_fill_manual(
-			# values = c('Previously-known presence' = 'black', 'No evidence' = 'darkred', 'Formerly occupied' = 'yellow', 'Currently occupied' = 'darkgreen')
+			# values = c('Previously-known presence' = 'black','Long-term test absence' = 'darkred', 'Recent test absence' = 'yellow', 'Test presence' = 'darkgreen')
 		# ) + 
 		# xlab('') + ylab('Elevation (m)') +
 		# theme(
@@ -3005,15 +3003,15 @@ say('#################################')
 	# dists <- data.frame(
 		# Group = c(
 			# # rep('Previously known occurrences', length(trainPres_m)),
-			# rep('Currently occupied', length(testPres_m)),
-			# rep('Formerly occupied', length(recentAbs_m)),
-			# rep('No evidence', length(oldAbs_m)),
-			# rep('Previously known occs. vs. currently occupied', length(trainPresVsTestPres_m)),
-			# rep('Previously known occs. vs. formerly occupied', length(trainPresVsRecentAbs_m)),
-			# rep('Previously known occs. vs. no evidence', length(trainPresVsOldAbs_m)),
-			# rep('Currently occupied vs. formerly occupied', length(testPresVsRecentAbs_m)),
-			# rep('Currently occupied vs. no evidence', length(testPresVsOldAbs_m)),
-			# rep('Formerly occupied vs. no evidence', length(recentAbsVsOldAbs_m))
+			# rep('Test presences', length(testPres_m)),
+			# rep('Recent test absences', length(recentAbs_m)),
+			# rep('Long-term test absences', length(oldAbs_m)),
+			# rep('Previously known occs. vs. Test presences', length(trainPresVsTestPres_m)),
+			# rep('Previously known occs. vs. recent test absences', length(trainPresVsRecentAbs_m)),
+			# rep('Previously known occs. vs. long-term test absences', length(trainPresVsOldAbs_m)),
+			# rep('Test presences vs. recent test absences', length(testPresVsRecentAbs_m)),
+			# rep('Test presences vs. long-term test absences', length(testPresVsOldAbs_m)),
+			# rep('Recent test absences vs. long-term test absences', length(recentAbsVsOldAbs_m))
 		# ),
 		# Set = c(
 			# # rep('vs. Self', length(trainPres_m) + length(testPres_m) + length(recentAbs_m) + length(oldAbs_m)),
@@ -3075,124 +3073,124 @@ say('#################################')
 	# say(minDist_km)
 	# sink()
 
-# say('############################')
-# say('### response curve plots ###')
-# say('############################')
+say('############################')
+say('### response curve plots ###')
+say('############################')
 
-	# # taking advantage of 1:1 correspondence between PC scores, predictions, and each environmental datum
+	# taking advantage of 1:1 correspondence between PC scores, predictions, and each environmental datum
 
-	# # models
-	# load('./ENMs/ENM BRT.rda')
-	# brt <- model
-	# load('./ENMs/ENM GAM.rda')
-	# gam <- model
-	# load('./ENMs/ENM GLM.rda')
-	# glm <- model
+	# models
+	load('./ENMs/ENM BRT.rda')
+	brt <- model
+	load('./ENMs/ENM GAM.rda')
+	gam <- model
+	load('./ENMs/ENM GLM.rda')
+	glm <- model
 
-	# load('./ENMs/Background Sites/PCA on Random Background Sites from across Study Region Mask.rda')
-	# load('./ENMs/Background Sites/Random Background Sites from across Study Region Mask.rda')
+	load('./ENMs/Background Sites/PCA on Random Background Sites from across Study Region Mask.rda')
+	load('./ENMs/Background Sites/Random Background Sites from across Study Region Mask.rda')
 	
-	# testSites <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
-	# load('./Data/Occurrences/Training Surveys 03 Pika - Extracted Environmental Values with PCA.rda')
+	testSites <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
+	load('./Data/Occurrences/Training Surveys 03 Pika - Extracted Environmental Values with PCA.rda')
 	
-	# bgScores <- predict(pca, bg)[ , 1]
-	# trainScores <- predict(pca, trainPres)[ , 1]
-	# testScores <- predict(pca, testSites)[ , 1]
+	bgScores <- predict(pca, bg)[ , 1]
+	trainScores <- predict(pca, trainPres)[ , 1]
+	testScores <- predict(pca, testSites)[ , 1]
 	
-	# # predictions
-	# bgPreds <- predictEnsemble(bg, brt = brt, gam = gam, glm = glm)
-	# trainPreds <- predictEnsemble(trainPres, brt = brt, gam = gam, glm = glm)
-	# testPreds <- predictEnsemble(testSites, brt = brt, gam = gam, glm = glm)
+	# predictions
+	bgPreds <- predictEnsemble(bg, brt = brt, gam = gam, glm = glm)
+	trainPreds <- predictEnsemble(trainPres, brt = brt, gam = gam, glm = glm)
+	testPreds <- predictEnsemble(testSites, brt = brt, gam = gam, glm = glm)
 	
-	# resps <- list()
-	# for (pred in predictors) {
+	resps <- list()
+	for (pred in predictors) {
 		
-		# # background sites
-		# bgDf <- data.table(
-			# var = bg[ , pred],
-			# pc = bgScores,
-			# prediction = bgPreds,
-			# status = 'background site'
-		# )
+		# background sites
+		bgDf <- data.table(
+			var = bg[ , pred],
+			pc = bgScores,
+			prediction = bgPreds,
+			status = 'background site'
+		)
 		
-		# # training presences
-		# trainDf <- data.table(
-			# var = trainPres[ , pred],
-			# pc = trainScores,
-			# prediction = trainPreds,
-			# status = 'previously-known presence'
-		# )
+		# training presences
+		trainDf <- data.table(
+			var = trainPres[ , pred],
+			pc = trainScores,
+			prediction = trainPreds,
+			status = 'previously-known presence'
+		)
 		
-		# # test sites
-		# testDf <- data.table(
-			# var = testSites[[pred]],
-			# pc = testScores,
-			# prediction = testPreds,
-			# status = testSites$status
-		# )
-		# testDf <- testDf[order(status)]
-		# testDf$status[testDf$status == '0 long absence'] <- 'long-term test absence'
-		# testDf$status[testDf$status == '1 recent absence'] <- 'recent test absence'
-		# testDf$status[testDf$status == '2 detected'] <- 'test presence'
+		# test sites
+		testDf <- data.table(
+			var = testSites[[pred]],
+			pc = testScores,
+			prediction = testPreds,
+			status = testSites$status
+		)
+		testDf <- testDf[order(status)]
+		testDf$status[testDf$status == '0 long absence'] <- 'long-term test absence'
+		testDf$status[testDf$status == '1 recent absence'] <- 'recent test absence'
+		testDf$status[testDf$status == '2 detected'] <- 'test presence'
 		
-		# df <- rbind(bgDf, trainDf, testDf)
-		# bgDf <- bgDf[order(var)]
+		df <- rbind(bgDf, trainDf, testDf)
+		bgDf <- bgDf[order(var)]
 		
-		# resps[[length(resps) + 1]] <- ggplot(df, aes(x = var, y = prediction, color = status, size = status, fill = status, shape = status)) +
-			# geom_point() +
-			# scale_color_manual(
-				# values = c(
-					# 'background site' = 'gray',
-					# 'previously-known presence' = 'black',
-					# 'long-term test absence' = 'black',
-					# 'recent test absence' = 'black',
-					# 'test presence' = 'black'
-				# )
-			# ) +
-			# scale_fill_manual(
-				# values = c(
-					# 'background site' = 'gray',
-					# 'previously-known presence' = 'black',
-					# 'long-term test absence' = 'red',
-					# 'recent test absence' = 'yellow',
-					# 'test presence' = 'chartreuse'
-				# )
-			# ) +
-			# scale_size_manual(
-				# values = c(
-					# 'background site' = 1,
-					# 'previously-known presence' = 1.4,
-					# 'long-term test absence' = 1.4,
-					# 'recent test absence' = 1.4,
-					# 'test presence' = 1.4
-				# )
-			# ) +
-			# scale_shape_manual(
-				# values = c(
-					# 'background site' = 16,
-					# 'previously-known presence' = 3,
-					# 'long-term test absence' = 25,
-					# 'recent test absence' = 23,
-					# 'test presence' = 21
-				# )
-			# ) +
-			# geom_smooth(data = bgDf, se = FALSE, aes(color = 'gray40')) +
-			# xlab(pred) +
-			# ylab('Predicted suitability') +
-			# ylim(c(0, 1))
+		resps[[length(resps) + 1]] <- ggplot(df, aes(x = var, y = prediction, color = status, size = status, fill = status, shape = status)) +
+			geom_point() +
+			scale_color_manual(
+				values = c(
+					'background site' = 'gray',
+					'previously-known presence' = 'black',
+					'long-term test absence' = 'black',
+					'recent test absence' = 'black',
+					'test presence' = 'black'
+				)
+			) +
+			scale_fill_manual(
+				values = c(
+					'background site' = 'gray',
+					'previously-known presence' = 'black',
+					'long-term test absence' = 'red',
+					'recent test absence' = 'yellow',
+					'test presence' = 'chartreuse'
+				)
+			) +
+			scale_size_manual(
+				values = c(
+					'background site' = 1,
+					'previously-known presence' = 1.4,
+					'long-term test absence' = 1.4,
+					'recent test absence' = 1.4,
+					'test presence' = 1.4
+				)
+			) +
+			scale_shape_manual(
+				values = c(
+					'background site' = 16,
+					'previously-known presence' = 3,
+					'long-term test absence' = 25,
+					'recent test absence' = 23,
+					'test presence' = 21
+				)
+			) +
+			geom_smooth(data = bgDf, se = FALSE, aes(color = 'gray40')) +
+			xlab(pred) +
+			ylab('Predicted suitability') +
+			ylim(c(0, 1))
 
-	# }
+	}
 	
-	# legend <- get_legend(
-	  # # create some space to the left of the legend
-	  # resps[[1]] + theme(legend.box.margin = margin(0, 0, 0, 12))
-	# )
+	legend <- get_legend(
+	  # create some space to the left of the legend
+	  resps[[1]] + theme(legend.box.margin = margin(0, 0, 0, 12))
+	)
 	
-	# respsSansLegend <- resps
-	# for (i in seq_along(respsSansLegend)) respsSansLegend[[i]] <- respsSansLegend[[i]] + theme(legend.position = 'none')
+	respsSansLegend <- resps
+	for (i in seq_along(respsSansLegend)) respsSansLegend[[i]] <- respsSansLegend[[i]] + theme(legend.position = 'none')
 
-	# responses <- plot_grid(plotlist = respsSansLegend, nrow = 3, labels = LETTERS[seq_along(resps)])
-	# all <- plot_grid(responses, legend, ncol = 1, rel_heights = c(1, 0.15))
-	# ggsave(all, filename = './Figures & Tables/Response Curves.png', width = 8, height = 11, dpi = 300)
+	responses <- plot_grid(plotlist = respsSansLegend, nrow = 3, labels = LETTERS[seq_along(resps)])
+	all <- plot_grid(responses, legend, ncol = 1, rel_heights = c(1, 0.15))
+	ggsave(all, filename = './Figures & Tables/Response Curves.png', width = 8, height = 11, dpi = 300)
 	
 say('DONE!!!!!!!!!!!!!!!!!!!!!!!!!!!!', level=1, pre=1)
