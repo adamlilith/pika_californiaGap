@@ -44,12 +44,11 @@
 ### measure gap area ###
 ### compare inter-point distances between sets of sites ###
 
-###########################################
-### libraries, variables, and functions ###
-###########################################
+##########################################
+## libraries, variables, and functions ###
+##########################################
 
 	rm(list=ls())
-	gc()
 
 	set.seed(1234567890)
 	
@@ -2085,13 +2084,9 @@
 # say('###############################################')
 	
 	# load('./ENMs/Background Sites/PCA on Random Background Sites from across Study Region Mask.rda')
-	
 	# load('./Data/Occurrences/Training Surveys 03 Pika - Extracted Environmental Values with PCA.rda')
 	# trainPres$origUsable <- as.logical(trainPres$origUsable)
 	# trainPres <- trainPres[trainPres$origUsable, ]
-	
-	# # remove erroneous point in desert
-	# trainPres <- trainPres[-which(trainPres$dataName == 'Connie Millar - Subset A - Pika Present' & trainPres$origLocality == 'Sierra Nevada; Humphreys Basin; Goethe rock glacier; at rg outlet stream; Fresno; CA' & trainPres$origElev == 3523 & trainPres$origNotes != 'RGC; granitic;' & trainPres$origDateOfObs == '8/16/2011'), ]
 	
 	# testSurveys <- fread('./Data/Occurrences/Test Surveys 05 Extracted Predictions.csv')
 	# testSurveys <- as.data.frame(testSurveys)
@@ -2141,7 +2136,7 @@
 			# text(x0 + loads[i, 1] * mult, y0 + loads[i, 2] * mult + ydelta, labels = label, cex=0.5, xpd=NA)
 		# }
 
-		# legend('topleft', inset=c(0.01, 0.1), legend=c('Background', 'Previously-known occurrence', 'Occupied', 'Formerly occupied', 'No evidence'), pch=c(NA, 3, 21, 23, 25), fill=c(blues9[6], NA, NA, NA, NA), col=c(NA, 'black', 'black', 'black', 'black'), pt.bg = c(NA, NA, 'green', 'yellow', 'red'), border=c('black', NA, NA, NA, NA), bty='n', bg=NA, cex=cex, xpd=NA)
+		# legend('topleft', inset=c(0.01, 0.1), legend=c('Background', 'Previously-known occurrence', 'Currently occupied', 'Formerly occupied', 'No evidence'), pch=c(NA, 3, 21, 23, 25), fill=c(blues9[6], NA, NA, NA, NA), col=c(NA, 'black', 'black', 'black', 'black'), pt.bg = c(NA, NA, 'green', 'yellow', 'red'), border=c('black', NA, NA, NA, NA), bty='n', bg=NA, cex=cex, xpd=NA)
 
 
 	# dev.off()	
